@@ -5,7 +5,7 @@ import time
 from zope import component
 from zope.interface.verify import verifyObject
 from ..testing import AWS_ACCOUNT_INTEGRATION_LAYER
-from cs.aws_account.components import Session
+from cs.aws_account.components import Session, session_factory
 from cs.aws_account.b3 import IBoto3Session
 from ..interfaces import ISession
 
@@ -107,7 +107,11 @@ class IntegrationTestAWSAccountSession(unittest.TestCase):
         t1.start(); t1.join()
         self.assertEqual(ak1, s.access_key())
         self.assertNotEqual(ak2, s.access_key())
-        
+    
+    def test_caching_factory(self):
+        s1 = session_factory(**self.session_kwargs)
+        s2 = session_factory(**self.session_kwargs)
+        self.assertIs(s1, s2)
     
 
 class IntegrationTestAWSAccountSessionZCA(unittest.TestCase):
@@ -118,7 +122,9 @@ class IntegrationTestAWSAccountSessionZCA(unittest.TestCase):
         self.session_kwargs = {'aws_access_key_id':     os.environ.get('AWS_ACCESS_KEY_ID'),
                                'aws_secret_access_key': os.environ.get('AWS_SECRET_ACCESS_KEY')}
     
-    def test_session_factory(self):
+    def test_session_factories(self):
         s = component.createObject(u"cs.aws_account.session", **self.session_kwargs)
+        self.assertTrue(ISession.providedBy(s))
+        s = component.createObject(u"cs.aws_account.cached_session", **self.session_kwargs)
         self.assertTrue(ISession.providedBy(s))
         

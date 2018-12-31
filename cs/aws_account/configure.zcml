@@ -4,5 +4,10 @@
         name="cs.aws_account.session"
         component=".components.SessionFactory"
         />
+    
+    <utility
+        name="cs.aws_account.cached_session"
+        component=".components.CachingSessionFactory"
+        />
 
 </configure>

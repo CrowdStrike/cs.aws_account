@@ -1,4 +1,4 @@
-from cachetools import cachedmethod, TTLCache
+from cachetools import cached, cachedmethod, TTLCache
 from threading import local, RLock
 import operator
 from zope.component.factory import Factory
@@ -141,7 +141,24 @@ class Session(object):
         #this call can be region dependent.  e.g. if calling aws from a govcloud
         #acct, this would fail because aws doesn't understand accounts in govcloud.
         return self.boto3().client('sts', region_name=self.boto3().region_name).get_caller_identity()['Arn']
-SessionFactory = Factory(Session)    
+SessionFactory = Factory(Session)
 
+@interface.implementer(ISession)
+@cached(cache={}, lock=RLock())
+def session_factory(*args, **kwargs):
+    return Session(*args, **kwargs)
+CachingSessionFactory = Factory(session_factory)
 
+class Account(object):
+    
+    _default_region = 'us-west-1'
+    
+    _service_region_map = {}
+    
+    def __init__(self, default_region=None,
+                        service_region_map=None):
+        if default_region:
+            self._default_region = default_region
+        if service_region_map:
+            self._service_region_map = service_region_map
         

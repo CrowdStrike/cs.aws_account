@@ -1,5 +1,22 @@
 # AWS ACCOUNT
 
+Boto3 provides nice bindings into the AWS API.  However, when dealing with
+a complex environment with many regions and accounts, the default calls can
+become combersome.  This package provides some convienence layers to 
+application builders that wish to remove some of the complexities for
+common tasks such as account coordination, call limited, and threaded
+access.
+
+## Regional Account
+
+
+## Account
+
+In some cases, boto3 services are not really 'regional'.  An example is 's3',
+where even though each region supports the calls...they all return the 
+same set of info (such as 's3').  For this, we have the Account class which
+acts very similar to RegionalAccount  
+
 ## Session
 
 The cs.aws_account.Session class provides convienent, threadlocal access to
@@ -102,3 +119,15 @@ False
 True
 
 ```
+
+For environments that desire to leverage singletons for common 
+cs.aws_account.Session() initialization parameters, there is a convienence
+factory
+
+```python
+>>> from cs.aws_account import session_factory
+>>> session_factory(**session_kwargs) is session_factory(**session_kwargs)
+True
+
+```
+
