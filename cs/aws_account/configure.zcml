@@ -1,0 +1,8 @@
+<configure xmlns="http://namespaces.zope.org/zope">
+    
+    <utility
+        name="cs.aws_account.session"
+        component=".components.SessionFactory"
+        />
+
+</configure>
