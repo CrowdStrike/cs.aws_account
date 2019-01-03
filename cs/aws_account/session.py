@@ -7,9 +7,11 @@ from botocore.credentials import RefreshableCredentials
 from botocore.session import get_session
 from boto3.session import Session as botoSession
 from .interfaces import ISession
+from cs.aws_account.caching_key import aggregated_string_hash
 
 import logging
 logger = logging.getLogger(__name__)
+
 
 @interface.implementer(ISession)
 class Session(object):
@@ -20,15 +22,11 @@ class Session(object):
     
     Some method calls have memoizing TTL caches to improve performance of
     common action calls (such as logging session information). 
-    """
     
-    @staticmethod
-    def _mapping_hash(mapping):
-        """Return a hash based on the key/values of a mapping"""
-        _id = ''
-        for k, v in mapping.items():
-            _id += "{}{}".format(k, v)
-        return hash(_id)
+    Kwargs:
+        cache_ttl: Integer seconds time to live for cached method calls
+        [boto3.session.Session]: See boto3.session.Session for other available kwargs
+    """
     
     def _reset_caches(self):
         """Reset the memoizing decorator caches"""
@@ -44,7 +42,7 @@ class Session(object):
         class tl_boto3(local):
             boto3 = [] #threadlocal stack
         self._local = tl_boto3() #threadlocal data to protect the non-TS low-level Boto3 session
-        self._stack = [(Session._mapping_hash(SessionParameters), SessionParameters)] #master stack
+        self._stack = [(aggregated_string_hash(SessionParameters), SessionParameters)] #master stack
         self._rlock = RLock()
         self._cache_ttl = cache_ttl
         self._reset_caches()
@@ -102,7 +100,7 @@ class Session(object):
         
     
     def revert(self):
-        """Set active boto3.session.Session object to previous, return pop'd Session"""
+        """Set active boto3.session.Session object to previous, return pop'd threadlocal boto3.session.Session"""
         with self._rlock:
             if len(self._stack) > 1:
                 s = self.boto3()
@@ -114,7 +112,7 @@ class Session(object):
         """Set active boto3.session.Session object to role-assumed object"""
         with self._rlock:
             kwargs['sts_method'] = sts_method
-            self._stack.append((Session._mapping_hash(kwargs), kwargs,))
+            self._stack.append((aggregated_string_hash(kwargs), kwargs,))
             self._reset_caches()
         self.boto3() #init, raises on error
         logger.info('Assumed AWS Role with ARN {}'.format(self.arn))
@@ -144,21 +142,31 @@ class Session(object):
 SessionFactory = Factory(Session)
 
 @interface.implementer(ISession)
-@cached(cache={}, lock=RLock())
-def session_factory(*args, **kwargs):
-    return Session(*args, **kwargs)
+@cached(cache={}, key=aggregated_string_hash, lock=RLock())
+def session_factory(SessionParameters=None, AssumeRole=None, AssumeRoles=None):
+    """Caching cs.aws_account.session.Session factory
+    
+    Common call signatures will return cached object.
+    
+    Create cs.aws_account.session.Session object.  If AssumeRole parameter is
+    available, then process the role assumption.  if AssumeRoles parameter
+    is available, then process the series of role assumptions
+    
+    Kwargs:
+        SessionParameters: required [see cs.aws_account.session.Session]
+        AssumeRole: optional [see cs.aws_account.session.Session.assume_role]
+        AssumeRoles: optional iterable of AssumeRole mappings
+    
+    Returns:
+        cs.aws_account.session.Session object
+    """
+    session = Session(**SessionParameters)
+    if AssumeRole:
+        session.assume_role(**AssumeRole)
+    if AssumeRoles:
+        for AssumeRole in AssumeRoles:
+            session.assume_role(**AssumeRole)
+    return session
 CachingSessionFactory = Factory(session_factory)
 
-class Account(object):
-    
-    _default_region = 'us-west-1'
-    
-    _service_region_map = {}
-    
-    def __init__(self, default_region=None,
-                        service_region_map=None):
-        if default_region:
-            self._default_region = default_region
-        if service_region_map:
-            self._service_region_map = service_region_map
-        
+

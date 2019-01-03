@@ -5,7 +5,7 @@ import time
 from zope import component
 from zope.interface.verify import verifyObject
 from ..testing import AWS_ACCOUNT_INTEGRATION_LAYER
-from cs.aws_account.components import Session, session_factory
+from cs.aws_account.session import Session, session_factory
 from cs.aws_account.b3 import IBoto3Session
 from ..interfaces import ISession
 
@@ -108,10 +108,23 @@ class IntegrationTestAWSAccountSession(unittest.TestCase):
         self.assertEqual(ak1, s.access_key())
         self.assertNotEqual(ak2, s.access_key())
     
-    def test_caching_factory(self):
-        s1 = session_factory(**self.session_kwargs)
-        s2 = session_factory(**self.session_kwargs)
+    def test_caching_session_factory(self):
+        s1 = session_factory(SessionParameters=self.session_kwargs)
+        s2 = session_factory(SessionParameters=self.session_kwargs)
         self.assertIs(s1, s2)
+        
+        s1 = session_factory(SessionParameters=self.session_kwargs, 
+                                        AssumeRole=self.assume_role_kwargs)
+        s2 = session_factory(SessionParameters=self.session_kwargs, 
+                                        AssumeRole=self.assume_role_kwargs)
+        self.assertIs(s1, s2)
+        
+        assume_role_kwargs = self.assume_role_kwargs.copy()
+        assume_role_kwargs['RoleSessionName'] =  'testing_assume_role_for_cs_aws_account_package_caching_test'
+        s2 = session_factory(SessionParameters=self.session_kwargs, 
+                                            AssumeRole=assume_role_kwargs)
+        self.assertIsNot(s1, s2)
+
     
 
 class IntegrationTestAWSAccountSessionZCA(unittest.TestCase):
@@ -123,8 +136,8 @@ class IntegrationTestAWSAccountSessionZCA(unittest.TestCase):
                                'aws_secret_access_key': os.environ.get('AWS_SECRET_ACCESS_KEY')}
     
     def test_session_factories(self):
-        s = component.createObject(u"cs.aws_account.session", **self.session_kwargs)
+        s = component.createObject(u"cs.aws_account.session", SessionParameters=self.session_kwargs)
         self.assertTrue(ISession.providedBy(s))
-        s = component.createObject(u"cs.aws_account.cached_session", **self.session_kwargs)
+        s = component.createObject(u"cs.aws_account.cached_session", SessionParameters=self.session_kwargs)
         self.assertTrue(ISession.providedBy(s))
         

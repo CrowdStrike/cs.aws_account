@@ -1,0 +1,103 @@
+#SESSION
+
+SessionParameters:
+ key1: value1 #key value pairs to match boto3.session.Session call signature
+ 
+AssumeRole:
+ sts_method: assume_role # see 'sts' client for variations
+ key1: value1 #key value pairs to match sts_method call signature
+
+AssumeRoles:
+ - AssumeRole: *reference
+ - AssumeRole: *reference
+
+Session:
+ SessionParameters: *reference
+ AssumeRole: *reference
+ AssumeRoles: *reference
+
+
+#ACCOUNT
+
+Account: *reference # references Session
+
+
+#REGIONAL ACCOUNT
+
+RateLimit:
+ max_count:
+ interval:
+ block:
+
+RegionalAccount:
+ region_name:
+ RateLimit: *reference #optional, defaults to unlimited
+ Account: *reference
+
+
+#REGIONAL ACCOUNTS CONTAINER
+
+Filter:
+ Partitions:
+  aws: #sample entry (no non-regional, specific regions only)
+   IncludeNonRegional: False
+   Regions:
+    include:
+     - us-east-1
+     - us-east-2
+  aws-cn: #sample entry (all regions, except named excluded)
+   IncludeNonRegional: True
+    exclude:
+     - us-west-1
+
+RegionalAccounts:
+ Account: *reference
+ RateLimit: *reference #optional, defaults to unlimited
+ Filter: *reference
+
+
+#REGIONAL ACCOUNTS SET
+
+RegionalAccountSet:
+ - RegionalAccounts: *reference
+ - RegionalAccounts: *reference
+
+
+
+
+
+#Boto3SessionParameters
+# Parameters used to establish a Python boto3 object.  If AssumeRole is 
+# provided, then the account session will leverage the ARN role specified 
+# (see http://boto3.readthedocs.io/en/latest/reference/services/sts.html#STS.Client.assume_role)
+Boto3SessionParameters:
+ SessionParameters: #optional, must be provided if AssumeRole is not provided
+  key1: value1 #key value pairs to match boto3.session.Session call signature
+ AssumeRoleParameters: #optional
+  key1: value1 #key value pairs to match boto3.client('sts').assume_role call signature
+  
+#AWSAccount
+# Parameters used to identify the aws search scope of an account. see
+# https://boto3.readthedocs.io/en/latest/reference/core/session.html for
+# additional information on these parameters.
+AWSAccount:
+ Partitions: #list of aws partitions to include, defaults to all
+  aws:
+   Regions: #list of aws region names to include, defaults to all
+    - us-east-1
+    - us-east-2
+  aws-cn:
+    AllowNonRegional: True #indicates if non-regional endpoints are included when Regions entry is not defined
+ Boto3SessionParameters: *reference
+ 
+#StormyAWSAccount
+# Identifies connection and api rate information for an AWS account.
+StormyAWSAccount:
+ AWSAccount: *reference
+ StormyRateLimit: *reference #stormy
+ 
+#RegionalAccountConfigurationAlerter
+RegionalAccountConfigurationAlerter:
+ standard_poller: 1_day #which poller to add alerters to
+ max_workers: 10 #concurrency limit of configuration checks
+ cid: abc123 #CrowdStrike customer CID to publish alert for

@@ -41,7 +41,8 @@ setup(name='cs.aws_account',
           'zope.schema',
           'boto3',
           'botocore',
-          'cachetools'
+          'cachetools',
+          'cs.ratelimit'
       ],
       extras_require={
             'testing': tests_require

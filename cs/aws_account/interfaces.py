@@ -1,5 +1,7 @@
 from zope import interface
-
+from zope.interface.common.mapping import IEnumerableMapping
+from zope import schema
+from cs import ratelimit
 
 class ISession(interface.Interface):
     """Boto3 Session accessor"""
@@ -35,3 +37,103 @@ class ISession(interface.Interface):
     
     def arn():
         """Return AWS account identity string in use for the referenced boto3 object"""
+
+class IAccount(interface.Interface):
+    """AWS account"""
+    
+    def account_id():
+        """Return AWS account identity string"""
+    
+    def alias():
+        """Return first AWS account alias string else account identity"""
+    
+    def aliases():
+        """Return iterable of all AWS account alias strings"""
+    
+    def session():
+        """Return ISession provider"""
+
+class IRegionalAccount(interface.Interface):
+    """A boto3 session client caller with rate limiting capabilities"""
+    
+    ratelimit = schema.Object(
+            title=u"Rate limit properties",
+            description=u"Rate limiting properties",
+            required=True,
+            schema=ratelimit.IRateLimitProperties
+        )
+    
+    def account():
+        """Return IAccount provider"""
+    
+    def region():
+        """Return AWS region string"""
+    
+    def call_client(self, service, method, client_kwargs=None, **kwargs):
+        """Return call to boto3 service client method limited by properties in ratelimit
+        
+        This can raise cs.ratelimit.RateLimitExceeded based on ratelimit settings
+        
+        Raises:
+            [dependent on named boto3 service method]
+        
+        Args:
+            service: valid boto3 service name string
+            method: valid boto3 named service method name string
+            client_kwargs: mapping of kwargs that will be used to create the 
+                boto3.client object.
+        
+        Kwargs:
+            [dependent on named boto3 service method]
+        
+        Returns:
+            [dependent on named boto3 service method]
+        """
+    
+    def get_paginator(service, method, client_kwargs=None, **kwargs):
+        """Return paginator for boto3 service client method limited by properties in ratelimit
+        
+        same call features as call_client() except calls are accessed via
+        a returned paginator
+        """
+
+class IMutableMappingSpecEntry(interface.Interface):
+    """A simple mutable mapping interface"""
+    def __getitem__(key):
+        """Return value or raise KeyError"""
+    def get(key, default=None):
+        """Return value or default if key not available"""
+    def __setitem__(key, value):
+        """Set key to value, value is converted to IMutableMappingSpecEntry if possible"""
+    def __iter__():
+        """Return iterator of keys"""
+
+class IRegionalAccounts(IEnumerableMapping):
+    """Mapping whose keys are AWS region strings and values are 
+    related IRegionalAccount providers
+    """
+    
+    filter = schema.Object(
+            title=u"Filter",
+            description=u"The container filter specification",
+            readonly=True, #but still mutable
+            required=True,
+            schema=IMutableMappingSpecEntry
+        )
+    
+    def account():
+        """Return IAccount provider"""
+    
+class IRegionalAccountSet(interface.Interface):
+    """A container of IRegionalAccounts providers that iterates over their content values (IRegionalAccount providers)"""
+    
+    def add(regional_accounts):
+        """Adds IRegionalAccounts provider to include for iteration if not available"""
+    def discard(regional_accounts):
+        """Discards IRegionalAccounts provider from iteration if available"""
+    def values():
+        """frozenset of available IRegionalAccounts providers"""
+    def __iter__():
+        """Iterator of unique IRegionalAccount providers from available IRegionalAccounts providers"""
+    
+    
