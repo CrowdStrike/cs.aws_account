@@ -4,7 +4,10 @@ version = '1.0.0'
 
 tests_require = [
     'zope.testrunner',
-    'zope.configuration',
+    'zope.configuration'
+]
+
+doc_tests_require = [
     'pyyaml',
     'Jinja2'
 ]
@@ -32,7 +35,7 @@ setup(name='cs.aws_account',
       namespace_packages=['cs'],
       include_package_data=True,
       package_data = {
-          '': ['*.md', '*.zcml']
+          '': ['*.zcml', '*.yaml']
         },
       zip_safe=False,
       install_requires=[
@@ -47,7 +50,8 @@ setup(name='cs.aws_account',
           'cs.ratelimit'
       ],
       extras_require={
-            'testing': tests_require
+            'testing': tests_require,
+            'doc_testing': doc_tests_require
       },
       entry_points={
           },
