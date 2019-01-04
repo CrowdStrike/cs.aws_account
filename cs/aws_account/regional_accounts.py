@@ -3,55 +3,10 @@ from cachetools import cached
 from zope.component.factory import Factory
 from zope import interface
 from zope.schema.fieldproperty import FieldProperty
-from .interfaces import IRegionalAccounts, IMutableMappingSpecEntry
+from .interfaces import IRegionalAccounts
 from .caching_key import aggregated_string_hash
 from .account import account_factory
 from .regional_account import regional_account_factory
-
-
-@interface.implementer(IMutableMappingSpecEntry)
-class TSMutableMappingSpecEntry(object):
-    """Simple threadsafe value access and iteration for mapping-like interface"""
-    def __init__(self, data=None):
-        self.lock = RLock()
-        data = data if data else {}
-        self._data = data if data else {}
-        
-        for k, v in data.items():
-            if hasattr(data[k], 'items') and callable(data.items):
-                if not isinstance(v, TSMutableMappingSpecEntry):
-                    v = TSMutableMappingSpecEntry(data[k])
-            self._data[k] = v
-    
-    #def __str__(self):
-    #    with self.lock:
-    #        s = ""
-    #        for k in self:
-    #            s += "'{}': {}, ".format(k, self[k])
-    #        return "{{}}".format(s)
-    
-    def __getitem__(self, key):
-        with self.lock:
-            return self._data[key]
-    
-    def get(self, key, default=None):
-        with self.lock:
-            try:
-                return self[key]
-            except KeyError:
-                return default
-    
-    def __setitem__(self, key, value):
-        with self.lock:
-            if hasattr(value, 'items') and callable(value.items):
-                value = TSMutableMappingSpecEntry(value)
-            if isinstance(value, list):
-                value = tuple(value) #insure TS for the data type
-            self._data[key] = value
-    
-    def __iter__(self):
-        with self.lock:
-            return iter([k for k in self._data])
             
 
 @interface.implementer(IRegionalAccounts)
@@ -88,7 +43,7 @@ class RegionalAccounts(object):
     filter = FieldProperty(IRegionalAccounts['filter'])
     
     def __init__(self, RateLimit, Account, Filter=None, RateLimitRegionSpec=None, service='ec2'):
-        self.filter = TSMutableMappingSpecEntry(Filter) if Filter else TSMutableMappingSpecEntry()
+        self.filter = Filter if Filter else {}
         
         self._RateLimit = RateLimit
         self._Account = Account

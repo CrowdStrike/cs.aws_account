@@ -97,28 +97,16 @@ class IRegionalAccount(interface.Interface):
         a returned paginator
         """
 
-class IMutableMappingSpecEntry(interface.Interface):
-    """A simple mutable mapping interface"""
-    def __getitem__(key):
-        """Return value or raise KeyError"""
-    def get(key, default=None):
-        """Return value or default if key not available"""
-    def __setitem__(key, value):
-        """Set key to value, value is converted to IMutableMappingSpecEntry if possible"""
-    def __iter__():
-        """Return iterator of keys"""
-
 class IRegionalAccounts(IEnumerableMapping):
     """Mapping whose keys are AWS region strings and values are 
     related IRegionalAccount providers
     """
     
-    filter = schema.Object(
+    filter = schema.Dict(
             title=u"Filter",
             description=u"The container filter specification",
             readonly=True, #but still mutable
-            required=True,
-            schema=IMutableMappingSpecEntry
+            required=True
         )
     
     def account():

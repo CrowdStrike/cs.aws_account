@@ -344,15 +344,17 @@ True
 
 ```
 
-Filters can be mutated, but not replaced.  Mutations are thread-safe
+Filters can be mutated, but not replaced.  Mutations are *not* generally 
+thread-safe, but the most typcail operations are atomic (e.g. thread safe)
+see http://effbot.org/pyfaq/what-kinds-of-global-value-mutation-are-thread-safe.htm
 
 ```python
 >>> filter1_raccts.filter['Partitions']['aws']['Regions']['include'].append('us-east-2')
+>>> filter1_raccts.filter['Partitions']['aws']['Regions']['include'] = ('us-east-1', 'us-east-2',)
 >>> 'us-east-2' in filter1_raccts
 True
->>> from cs.aws_account.regional_accounts import TSMutableMappingSpecEntry
 >>> try:
-...     filter1_raccts.filter = TSMutableMappingSpecEntry()
+...     filter1_raccts.filter = {}
 ... except ValueError:
 ...    print "not allowed!"
 not allowed!
