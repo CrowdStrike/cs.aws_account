@@ -4,7 +4,9 @@ version = '1.0.0'
 
 tests_require = [
     'zope.testrunner',
-    'zope.configuration'
+    'zope.configuration',
+    'pyyaml',
+    'Jinja2'
 ]
 
 setup(name='cs.aws_account',

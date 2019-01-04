@@ -23,7 +23,7 @@ class RegionalAccounts(object):
     Dict Filter Spec:
         Partitions:
          aws: # valid AWS partition name.  If absent, defaults to all available partitions
-          IncludeNonRegional: True|False # include non-regional endpoint names
+          IncludeNonRegional: True|False # include non-regional endpoint names, defaults to True
           Regions: #if absent, defaults to all available regions
            include: [list, of, regions] #if absent, defaults to all available regions
            exclude: [list, of, regions] #takes precedence over include

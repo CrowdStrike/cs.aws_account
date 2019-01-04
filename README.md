@@ -15,11 +15,104 @@ Why might you want to use this package?
   - You'd like to allow runtime configuration to determine which AWS
     accounts and regions are acted on by your application.
 
-## Narative Usage
+## Narative Application Usage
 
 Although individual package components are easy enough to understand, as a
 whole, things get complex.  To help your introduction, this section provides
 quick naratives to component usage.
+
+### Configuration
+
+It all starts with configuration.  In these examples, we'll leverage Yaml and
+Jinga (to allow for anchors/references and config macros) to help 
+iilustrate how a real-world deployment might work.
+
+```python
+>>> unrendered_config = """
+...
+... SessionParameters: &aws_api_creds
+...  aws_access_key_id: {{AWS_ACCESS_KEY_ID}}
+...  aws_secret_access_key: {{AWS_SECRET_ACCESS_KEY}}
+... 
+... Account: &default_account
+...  SessionParameters: *aws_api_creds
+...  AssumeRole:
+...   RoleArn: {{AWS_ASSUME_ROLE}}
+...   RoleSessionName: test_assumed_role_session #arbitrary name
+... 
+... RateLimit: &default_ratelimit
+...  max_count: 10
+...  interval: 1
+...  block: True
+...
+... RegionalAccounts: &us-east-1
+...  Account: *default_account
+...  RateLimit: *default_ratelimit
+...  Filter:
+...   Partitions:
+...    aws:
+...     IncludeNonRegional: False
+...     Regions: 
+...      include: [us-east-1]
+...
+... RegionalAccounts: &all-execpt-us-east-1
+...  Account: *default_account
+...  RateLimit: *default_ratelimit
+...  Filter:
+...   Partitions:
+...    aws:
+...     Regions: 
+...      exclude: [us-east-1]
+... 
+... YourApp:
+...  RegionalAccountSet:
+...   - *us-east-1
+...   - *all-execpt-us-east-1
+...
+... """
+>>> from jinja2 import Template
+>>> import os
+>>> rendered_config = Template(unrendered_config).render(os.environ)
+>>> import yaml
+>>> config = yaml.load(rendered_config)
+
+```
+
+Most of the entries in the config have parameters defined by `cs.aws_account`.
+The exception is the *YourApp* entry, which determines how your application
+will consume the rest of the configuration parameters.  In this example,
+the application is choosing to produce a 
+`cs.aws_account.regional_account_set.RegionalAccountSet` instance for consumption.
+
+Here's how the app should initialize this object
+
+```python
+>>> from cs.aws_account.regional_account_set import regional_account_set_factory
+>>> accounts = None
+>>> def my_app_initialization(config):
+...     global accounts
+...     accounts = regional_account_set_factory(*config['YourApp']['RegionalAccountSet'])
+>>> my_app_initialization(config)
+
+```
+
+There is now a global `accounts` variable that can be leveraged across your
+application whose contents was determined via configuration.  Some important
+notes about this object:
+
+ - It is iterable, producing instances of `cs.aws_account.regional_account.RegionalAccount`
+   objects.
+ - `cs.aws_account.regional_account.RegionalAccount` objects have methods to
+   interface with boto3 `Session.Client()` and `Session.Client().get_paginator()`
+   that have built-in ratelimiting...this is one of the reasons you're
+   leveraging this package.
+ - the usage of `cs.aws_account.regional_account_set.regional_account_set_factory`
+   insured that the objects referenced are cached object singletons.  This
+   means that other config-driven factory based objects with common call
+   signatures will also reference these singletons.
+
+
+## Components
 
 ### The Session
 The `cs.aws_account.Session` class provides convienent, threadlocal access to
@@ -285,7 +378,7 @@ below (in _Yaml_ format).  All keys are optional.
 ```yaml
 Partitions:
  aws: # valid AWS partition name.  If absent, defaults to all available partitions
-  IncludeNonRegional: True|False # include non-regional endpoint names
+  IncludeNonRegional: True|False # include non-regional endpoint names, defaults to True
   Regions: #if absent, defaults to all available regions
    include: [list, of, regions] #if absent, defaults to all available regions
    exclude: [list, of, regions] #takes precedence over include

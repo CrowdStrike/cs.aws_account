@@ -4,7 +4,7 @@ SessionParameters:
  key1: value1 #key value pairs to match boto3.session.Session call signature
  
 AssumeRole:
- sts_method: assume_role # see 'sts' client for variations
+ sts_method: assume_role # see 'sts' client for variations, defaults to assume_role
  key1: value1 #key value pairs to match sts_method call signature
 
 AssumeRoles:
