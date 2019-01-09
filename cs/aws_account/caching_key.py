@@ -6,8 +6,7 @@ def aggregated_string_hash(*args, **kwargs):
         _id += u"{}".format(arg)
     
     if kwargs:
-        keys = kwargs.keys()
-        keys.sort()
+        keys = sorted(kwargs.keys())
         for k in keys:
             _id += u"{}:{}".format(k, kwargs[k])
     return hash(_id)
