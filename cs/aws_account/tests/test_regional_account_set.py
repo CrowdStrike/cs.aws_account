@@ -110,10 +110,9 @@ class IntegrationTestAWSAccountRegionalAccountSetZCA(unittest.TestCase):
         ra_set = component.createObject(u"cs.aws_account.regional_account_set", ra0, ra1)
         self.assertTrue(IRegionalAccountSet.providedBy(ra_set))
         
-        #cached
-        self.assertIs(
-                component.createObject(u"cs.aws_account.cached_regional_account_set", 
+        self.assertIsNot(
+                component.createObject(u"cs.aws_account.regional_account_set_from_config", 
                                        *self.args),
-                component.createObject(u"cs.aws_account.cached_regional_account_set", 
+                component.createObject(u"cs.aws_account.regional_account_set_from_config", 
                                        *self.args)
             )

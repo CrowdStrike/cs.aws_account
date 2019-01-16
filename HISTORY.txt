@@ -1,2 +1,13 @@
 Changelog
 =========
+
+1.0.0
+++++++++++++++++++
+
+* initial release
+
+1.0.1
+++++++++++++++++++
+
+* remove caching from regional_account_set_factory(). Contained objects are
+  still cached, however.

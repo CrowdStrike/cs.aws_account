@@ -55,11 +55,8 @@ class RegionalAccountSet(object):
 RegionalAccountSetFactory = Factory(RegionalAccountSet)
 
 @interface.implementer(IRegionalAccountSet)
-@cached(cache={}, key=aggregated_string_hash, lock=RLock())
 def regional_account_set_factory(*args):
-    """Caching cs.aws_account.regional_account_set.RegionalAccountSet factory
-    
-    Common call signatures will return cached object.
+    """cs.aws_account.regional_account_set.RegionalAccountSet factory
     
     This accepts an arbritrary number of valid 
     cs.aws_account.regional_accounts.regional_accounts_factory kwargs dicts.
@@ -76,4 +73,4 @@ def regional_account_set_factory(*args):
     for RegionalAccounts in args:
         ra_set.add(regional_accounts_factory(**RegionalAccounts))
     return ra_set
-CachingRegionalAccountSetFactory = Factory(regional_account_set_factory)
+RegionalAccountSetFactoryFromConfig = Factory(regional_account_set_factory)

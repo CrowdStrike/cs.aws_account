@@ -50,8 +50,8 @@
         />
     
     <utility
-        name="cs.aws_account.cached_regional_account_set"
-        component=".regional_account_set.CachingRegionalAccountSetFactory"
+        name="cs.aws_account.regional_account_set_from_config"
+        component=".regional_account_set.RegionalAccountSetFactoryFromConfig"
         />
 
 </configure>
