@@ -141,3 +141,6 @@ class IntegrationTestAWSAccountSessionZCA(unittest.TestCase):
         s = component.createObject(u"cs.aws_account.cached_session", SessionParameters=self.session_kwargs)
         self.assertTrue(ISession.providedBy(s))
         
+        s = component.createObject(u"cs.aws_account.cached_session")
+        self.assertTrue(ISession.providedBy(s))
+        

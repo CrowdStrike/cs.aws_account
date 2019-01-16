@@ -153,13 +153,14 @@ def session_factory(SessionParameters=None, AssumeRole=None, AssumeRoles=None):
     is available, then process the series of role assumptions
     
     Kwargs:
-        SessionParameters: required [see cs.aws_account.session.Session]
+        SessionParameters: optional [see cs.aws_account.session.Session]
         AssumeRole: optional [see cs.aws_account.session.Session.assume_role]
         AssumeRoles: optional iterable of AssumeRole mappings
     
     Returns:
         cs.aws_account.session.Session object
     """
+    SessionParameters = SessionParameters if SessionParameters else {}
     session = Session(**SessionParameters)
     if AssumeRole:
         session.assume_role(**AssumeRole)
