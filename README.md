@@ -536,10 +536,10 @@ True
 
 ```
 
-There is also a caching factory available at 
+There is also a factory available at 
 `cs.aws_account.regional_account_set.regional_account_set_factory` which accepts
 an arbritrary number of dicts providing the call signature of
-`cs.aws_account.regional_account_set.regional_accounts_factory`
+`cs.aws_account.regional_account_set.regional_accounts_factory`.
 
 
 
