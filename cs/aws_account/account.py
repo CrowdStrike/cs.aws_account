@@ -66,7 +66,7 @@ def account_factory(SessionParameters=None, AssumeRole=None, AssumeRoles=None):
                               AssumeRole=AssumeRole,
                               AssumeRoles=AssumeRoles)
     kwargs = {}
-    if 'cache_ttl' in SessionParameters:
+    if SessionParameters and 'cache_ttl' in SessionParameters:
         kwargs['cache_ttl'] = SessionParameters['cache_ttl']
     return Account(session=session, **kwargs)
 CachingAccountFactory = Factory(account_factory)

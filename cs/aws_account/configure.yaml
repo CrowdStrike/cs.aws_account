@@ -34,7 +34,7 @@ RegionalAccount:
 
 Filter:
  Partitions:
-  aws: # valid AWS partition name.  If absent, defaults to all available partitions
+  aws: # valid AWS partition name.  If absent, defaults to 'aws'
    IncludeNonRegional: True|False # include non-regional endpoint names, defaults to True
    Regions: #if absent, defaults to all available regions
     include: [list, of, regions] #if absent, defaults to all available regions

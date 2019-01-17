@@ -51,7 +51,7 @@ iilustrate how a real-world deployment might work.
 ...  Filter:
 ...   Partitions:
 ...    aws:
-...     IncludeNonRegional: False
+...     IncludeNonRegional: True
 ...     Regions: 
 ...      include: [us-east-1]
 ...
@@ -66,8 +66,8 @@ iilustrate how a real-world deployment might work.
 ... 
 ... YourApp:
 ...  RegionalAccountSet:
-...   - *us-east-1
-...   - *all-execpt-us-east-1
+...   - RegionalAccounts: *us-east-1
+...   - RegionalAccounts: *all-execpt-us-east-1
 ...
 ... """
 >>> from jinja2 import Template
@@ -377,8 +377,8 @@ below (in _Yaml_ format).  All keys are optional.
 
 ```yaml
 Partitions:
- aws: # valid AWS partition name.  If absent, defaults to all available partitions
-  IncludeNonRegional: True|False # include non-regional endpoint names, defaults to True
+ aws: # valid AWS partition name.  If absent, defaults 'aws'
+  IncludeNonRegional: True|False # include non-regional endpoint names, defaults to False
   Regions: #if absent, defaults to all available regions
    include: [list, of, regions] #if absent, defaults to all available regions
    exclude: [list, of, regions] #takes precedence over include

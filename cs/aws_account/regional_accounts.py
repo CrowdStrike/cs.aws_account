@@ -22,8 +22,8 @@ class RegionalAccounts(object):
     
     Dict Filter Spec:
         Partitions:
-         aws: # valid AWS partition name.  If absent, defaults to all available partitions
-          IncludeNonRegional: True|False # include non-regional endpoint names, defaults to True
+         aws: # valid AWS partition name.  If absent, defaults 'aws'
+          IncludeNonRegional: True|False # include non-regional endpoint names, defaults to False
           Regions: #if absent, defaults to all available regions
            include: [list, of, regions] #if absent, defaults to all available regions
            exclude: [list, of, regions] #takes precedence over include
@@ -87,16 +87,14 @@ class RegionalAccounts(object):
         return (k for k in self)
 
     def __iter__(self):
-        partitions = \
-            self.filter.get('Partitions', {k:None for k in \
-                    self.account().session().boto3().get_available_partitions()})
+        partitions = self.filter.get('Partitions', {'aws': None})
         
         regions = set()
         for name in set(partitions):
             p_config = partitions[name]
             if not p_config:
                 p_config = {}
-            include_non_regional = p_config.get('IncludeNonRegional', True)
+            include_non_regional = p_config.get('IncludeNonRegional', False)
             all_regions = self.account().session().boto3().get_available_regions(
                                 self._service, 
                                 partition_name=name, 

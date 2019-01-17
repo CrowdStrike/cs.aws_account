@@ -83,6 +83,7 @@ class IntegrationTestAWSAccountRegionalAccountSetZCA(unittest.TestCase):
     def setUp(self):
         
         self.args = [
+            {'RegionalAccounts':
             {
                 'RateLimit': {'max_count':1, 'interval':1, 'block': False},
                 'Account':  {'SessionParameters': {'aws_access_key_id':     os.environ.get('AWS_ACCESS_KEY_ID'),
@@ -91,7 +92,8 @@ class IntegrationTestAWSAccountRegionalAccountSetZCA(unittest.TestCase):
                             {'aws':
                                 {'Regions':
                                     {'include': ['us-east-1']}}}}
-            },
+            }},
+            {'RegionalAccounts':
             {
                 'RateLimit': {'max_count':1, 'interval':1, 'block': False},
                 'Account':  {'SessionParameters': {'aws_access_key_id':     os.environ.get('AWS_ACCESS_KEY_ID'),
@@ -100,13 +102,13 @@ class IntegrationTestAWSAccountRegionalAccountSetZCA(unittest.TestCase):
                             {'aws':
                                 {'Regions':
                                     {'include': ['us-east-2']}}}}
-            }
+            }}
         ]
     
     def test_account_factories(self):
         #non-cachaed
-        ra0 = regional_accounts_factory(**self.args[0])
-        ra1 = regional_accounts_factory(**self.args[1])
+        ra0 = regional_accounts_factory(**self.args[0]['RegionalAccounts'])
+        ra1 = regional_accounts_factory(**self.args[1]['RegionalAccounts'])
         ra_set = component.createObject(u"cs.aws_account.regional_account_set", ra0, ra1)
         self.assertTrue(IRegionalAccountSet.providedBy(ra_set))
         

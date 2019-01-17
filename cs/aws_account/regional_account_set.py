@@ -71,6 +71,6 @@ def regional_account_set_factory(*args):
     """
     ra_set = RegionalAccountSet()
     for RegionalAccounts in args:
-        ra_set.add(regional_accounts_factory(**RegionalAccounts))
+        ra_set.add(regional_accounts_factory(**RegionalAccounts['RegionalAccounts']))
     return ra_set
 RegionalAccountSetFactoryFromConfig = Factory(regional_account_set_factory)
