@@ -95,8 +95,9 @@ class Session(object):
                                 (hash_, self._assume_role(
                                                 self._local.boto3[-1][1], **kwargs))
                                              )
-            
-            return self._local.boto3[-1][1] #return lifo entry from threadlocal stack
+            b3 = self._local.boto3[-1][1] #return lifo entry from threadlocal stack
+            logger.debug("Returning Boto3.Session object with access key {}".format(b3.get_credentials().access_key))
+            return b3
         
     
     def revert(self):
@@ -110,12 +111,13 @@ class Session(object):
     
     def assume_role(self, sts_method='assume_role', **kwargs):
         """Set active boto3.session.Session object to role-assumed object"""
+        logger.debug('Attempting to assumed AWS Role with data {} from arn {}'.format(kwargs, self.arn()))
         with self._rlock:
             kwargs['sts_method'] = sts_method
             self._stack.append((aggregated_string_hash(kwargs), kwargs,))
             self._reset_caches()
         self.boto3() #init, raises on error
-        logger.info('Assumed AWS Role with ARN {}'.format(self.arn))
+        logger.info('Assumed AWS Role with ARN {}'.format(self.arn()))
     
     @cachedmethod(operator.attrgetter('_cache_access_key'), lock=operator.attrgetter('_rlock'))
     def access_key(self):

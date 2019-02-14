@@ -18,3 +18,8 @@ Changelog
 * update call signature of session_factory to make SessionParameters optional
 * update default regional accounts filter default to more sensible settings.
 * fix call signature to regional_account_set_factory() and account_factory()
+
+1.0.3
+++++++++++++++++++
+
+* small fix for logging for assume_role()
