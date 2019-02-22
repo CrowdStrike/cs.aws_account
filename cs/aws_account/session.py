@@ -52,6 +52,8 @@ class Session(object):
         # https://programtalk.com/python-examples/botocore.credentials.RefreshableCredentials.create_from_metadata/
         assume_role = getattr(boto3_session.client('sts'), sts_method)
         def refresh():
+            logger.debug("Refreshing assumed role credentials for ARN {} with session name {}".format(kwargs.get('RoleArn',''),
+                                                                                                      kwargs.get('RoleSessionName','')))
             credentials = assume_role(**kwargs)['Credentials']
             #mapping keys common among all assume_role call variations
             return dict(
@@ -83,21 +85,24 @@ class Session(object):
             
             #reduce threadlocal boto3 stack, if needed
             self._local.boto3 = self._local.boto3[:len(self._stack)]
+            #rebuild the stack so we can safely reference info in unlocked state.
+            stack = [t for t in self._stack[len(self._local.boto3):]]
             
-            #build the needed threadlocal boto3 stack reference
-            for hash_, kwargs in self._stack[len(self._local.boto3):]:
-                if not self._local.boto3:
-                    self._local.boto3.append(
-                                (hash_, botoSession(**kwargs), )
-                                             )
-                else:
-                    self._local.boto3.append(
-                                (hash_, self._assume_role(
-                                                self._local.boto3[-1][1], **kwargs))
-                                             )
-            b3 = self._local.boto3[-1][1] #return lifo entry from threadlocal stack
-            logger.debug("Returning Boto3.Session object with access key {}".format(b3.get_credentials().access_key))
-            return b3
+        #Do these tasks outside the lock to allow concurrent calls
+        #to independently build the threadlocal boto3 object
+        for hash_, kwargs in stack:
+            if not self._local.boto3:
+                self._local.boto3.append(
+                            (hash_, botoSession(**kwargs), )
+                                         )
+            else:
+                self._local.boto3.append(
+                            (hash_, self._assume_role(
+                                            self._local.boto3[-1][1], **kwargs))
+                                         )
+        b3 = self._local.boto3[-1][1] #return lifo entry from threadlocal stack
+        #logger.debug("Returning Boto3.Session object with access key {}".format(b3.get_credentials().access_key))
+        return b3
         
     
     def revert(self):
@@ -107,6 +112,7 @@ class Session(object):
                 s = self.boto3()
                 self._stack.pop()
                 self._reset_caches()
+                logger.debug("Reverting role to {}".format(self._stack[-1]))
                 return s
     
     def assume_role(self, sts_method='assume_role', **kwargs):

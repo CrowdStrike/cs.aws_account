@@ -18,7 +18,7 @@ class IntegrationTestAWSAccountRegionalAccount(unittest.TestCase):
                                'aws_secret_access_key': os.environ.get('AWS_SECRET_ACCESS_KEY')}
         self.session = Session(**self.session_kwargs)
         self.account = Account(self.session)
-        self.ratelimit = RateLimitProperties(max_count=1, interval=timedelta(seconds=1), block=False)
+        self.ratelimit = RateLimitProperties(max_count=1, interval=timedelta(seconds=10), block=False)
         self.ra = RegionalAccount(self.ratelimit, self.account, region_name='us-east-1')
     
     def test_region(self):

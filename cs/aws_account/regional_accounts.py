@@ -1,5 +1,5 @@
 from threading import RLock
-from cachetools import cached
+from cachetools import cached, cachedmethod, TTLCache
 from zope.component.factory import Factory
 from zope import interface
 from zope.schema.fieldproperty import FieldProperty
@@ -85,7 +85,14 @@ class RegionalAccounts(object):
     
     def keys(self):
         return (k for k in self)
-
+    
+    @cached(cache=TTLCache(maxsize=1000, ttl=86400))
+    def _all_regions(self, partition_name, allow_non_regional):
+        return self.account().session().boto3().get_available_regions(
+                                self._service, 
+                                partition_name=partition_name, 
+                                allow_non_regional=allow_non_regional)
+    
     def __iter__(self):
         partitions = self.filter.get('Partitions', {'aws': None})
         
@@ -95,10 +102,7 @@ class RegionalAccounts(object):
             if not p_config:
                 p_config = {}
             include_non_regional = p_config.get('IncludeNonRegional', False)
-            all_regions = self.account().session().boto3().get_available_regions(
-                                self._service, 
-                                partition_name=name, 
-                                allow_non_regional=include_non_regional)
+            all_regions = self._all_regions(name, include_non_regional)
             
             region_include = set(p_config.get('Regions', {}).get('include', {}))
             if not region_include:
