@@ -10,6 +10,9 @@ from .account import account_factory
 from .interfaces import IRegionalAccount
 from cs.aws_account.caching_key import aggregated_string_hash
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 @interface.implementer(IRegionalAccount)
 class RegionalAccount(object):
@@ -46,6 +49,14 @@ class RegionalAccount(object):
     
     @ratelimitedmethod(operator.attrgetter('ratelimit'))
     def _limited(self, callback, **kwargs):
+        logger.debug("calling AWS method {} for account {} ({}) region {} with user arn {}".\
+                        format(
+                            callback,
+                            self._account.account_id(),
+                            self._account.alias(),
+                            self._region_name,
+                            self._account.session().arn()
+                            ))
         return callback(**kwargs)
     
     def call_client(self, service, method, client_kwargs=None, **kwargs):
