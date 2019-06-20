@@ -37,11 +37,11 @@ class IntegrationTestAWSAccountRegionalAccount(unittest.TestCase):
     def test_get_paginator(self):
         paginator = self.ra.get_paginator('ec2', 'describe_instances')
         page_iterator = paginator.paginate(PaginationConfig={'MaxItems': 10})
-        page_iterator.__iter__().next()
+        next(page_iterator.__iter__())
         with self.assertRaises(RateLimitExceeded):
-            page_iterator.__iter__().next()
+            next(page_iterator.__iter__())
         self.ra.ratelimit.max_count = 2
-        page_iterator.__iter__().next()
+        next(page_iterator.__iter__())
     
 
 class IntegrationTestAWSAccountRegionalAccountZCA(unittest.TestCase):

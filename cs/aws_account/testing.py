@@ -1,5 +1,9 @@
 from zope.component.testlayer import ZCMLFileLayer
+import warnings
 import cs.aws_account
+
+#see https://github.com/boto/boto3/issues/454
+warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed.*<ssl.SSLSocket.*>")
 
 AWS_ACCOUNT_INTEGRATION_LAYER = ZCMLFileLayer(cs.aws_account,
                                           zcml_file='ftesting.zcml',
