@@ -23,3 +23,11 @@ Changelog
 ++++++++++++++++++
 
 * small fix for logging for assume_role()
+
+1.0.4
+++++++++++++++++++
+
+* add additional logging
+* cache region information for performance improvement of RegionalAccounts()
+* improve threaded performance of Session boto3 stack management
+* add Python 3 compatibility
