@@ -31,3 +31,9 @@ Changelog
 * cache region information for performance improvement of RegionalAccounts()
 * improve threaded performance of Session boto3 stack management
 * add Python 3 compatibility
+
+1.0.6
+++++++++++++++++++
+
+* fix Python syntax bug in regional accounts
+* remove RegionalAccountException

@@ -13,10 +13,6 @@ from cs.aws_account.caching_key import aggregated_string_hash
 import logging
 logger = logging.getLogger(__name__)
 
-class RegionalAccountException(Exception):
-    pass
-
-
 @interface.implementer(IRegionalAccount)
 class RegionalAccount(object):
     """A boto3 session client caller with rate limiting capabilities
@@ -61,10 +57,7 @@ class RegionalAccount(object):
                             self._account.session().arn()
                             )
         logger.debug(debug_msg)
-        try:
-            return callback(**kwargs)
-        except Exception as e:
-            raise RegionalAccountException("Error {}".format(debug_msg)) from e
+        return callback(**kwargs)
     
     def call_client(self, service, method, client_kwargs=None, **kwargs):
         """Return call to boto3 service client method limited by properties in ratelimit
