@@ -37,3 +37,9 @@ Changelog
 
 * fix Python syntax bug in regional accounts
 * remove RegionalAccountException
+
+1.0.7
+++++++++++++++++++
+
+* fix issue where client calls in Session() don't reference the sessions defaul
+  region

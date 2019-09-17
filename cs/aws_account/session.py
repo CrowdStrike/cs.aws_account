@@ -45,12 +45,15 @@ class Session(object):
         self._stack = [(aggregated_string_hash(SessionParameters), SessionParameters)] #master stack
         self._rlock = RLock()
         self._cache_ttl = cache_ttl
+        self._client_kwargs = {}
+        if 'default_region' in SessionParameters:
+            self._client_kwargs['region_name'] = SessionParameters['default_region']
         self._reset_caches()
     
     def _assume_role(self, boto3_session, sts_method='assume_role', **kwargs):
         """Stateless assume role call, returns Boto3 session with role assumption"""
         # https://programtalk.com/python-examples/botocore.credentials.RefreshableCredentials.create_from_metadata/
-        assume_role = getattr(boto3_session.client('sts'), sts_method)
+        assume_role = getattr(boto3_session.client('sts', **self._client_kwargs), sts_method)
         def refresh():
             logger.debug("Refreshing assumed role credentials for ARN {} with session name {}".format(kwargs.get('RoleArn',''),
                                                                                                       kwargs.get('RoleSessionName','')))
@@ -134,19 +137,19 @@ class Session(object):
     @cachedmethod(operator.attrgetter('_cache_account_id'), lock=operator.attrgetter('_rlock'))
     def account_id(self):
         """Return AWS account ID related to session"""
-        return self.boto3().client('sts').get_caller_identity()['Account']
+        return self.boto3().client('sts', **self._client_kwargs).get_caller_identity()['Account']
     
     @cachedmethod(operator.attrgetter('_cache_user_id'), lock=operator.attrgetter('_rlock'))
     def user_id(self):
         """Return AWS user ID related to session"""
-        return self.boto3().client('sts').get_caller_identity()['UserId']
+        return self.boto3().client('sts', **self._client_kwargs).get_caller_identity()['UserId']
     
     @cachedmethod(operator.attrgetter('_cache_arn'), lock=operator.attrgetter('_rlock'))
     def arn(self):
         """Return the AWS Arn related to session (includes user name)"""
         #this call can be region dependent.  e.g. if calling aws from a govcloud
         #acct, this would fail because aws doesn't understand accounts in govcloud.
-        return self.boto3().client('sts', region_name=self.boto3().region_name).get_caller_identity()['Arn']
+        return self.boto3().client('sts', **self._client_kwargs).get_caller_identity()['Arn']
 SessionFactory = Factory(Session)
 
 @interface.implementer(ISession)
