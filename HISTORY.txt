@@ -43,3 +43,8 @@ Changelog
 
 * fix issue where client calls in Session() don't reference the sessions defaul
   region
+
+1.0.8
+++++++++++++++++++
+
+* fix issue where default_region was used instead of correct region_name

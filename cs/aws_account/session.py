@@ -46,8 +46,8 @@ class Session(object):
         self._rlock = RLock()
         self._cache_ttl = cache_ttl
         self._client_kwargs = {}
-        if 'default_region' in SessionParameters:
-            self._client_kwargs['region_name'] = SessionParameters['default_region']
+        if 'region_name' in SessionParameters:
+            self._client_kwargs['region_name'] = SessionParameters['region_name']
         self._reset_caches()
     
     def _assume_role(self, boto3_session, sts_method='assume_role', **kwargs):
