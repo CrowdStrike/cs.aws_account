@@ -48,3 +48,9 @@ Changelog
 ++++++++++++++++++
 
 * fix issue where default_region was used instead of correct region_name
+
+1.0.9
+++++++++++++++++++
+
+* Allow public access to Session._client_kwargs, update broken client calls to
+  reference correct region_name
