@@ -16,7 +16,10 @@ class ISession(interface.Interface):
             sts_method: name of sts Client method used to execute the role assumption
             [others]:  Other kwargs are passed unalltered into the named sts role assumption method
         """
-    
+
+    def client_kwargs():
+        """return shadllow copy of self._client_kwarg"""
+
     def revert():
         """Revert active session to previous boto3 session in used before last call to assume_role().
         

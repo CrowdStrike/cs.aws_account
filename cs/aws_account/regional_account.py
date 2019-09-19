@@ -42,6 +42,8 @@ class RegionalAccount(object):
         return self._account
 
     def _get_client(self, service, **kwargs):
+        _kwargs = self.account().session().client_kwargs()
+        _kwargs.merge(kwargs)
         kwargs['service_name'] = service
         kwargs['region_name'] = self.region()
         return self.account().session().boto3().client(**kwargs)

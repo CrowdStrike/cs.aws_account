@@ -127,7 +127,11 @@ class Session(object):
             self._reset_caches()
         self.boto3() #init, raises on error
         logger.info('Assumed AWS Role with ARN {}'.format(self.arn()))
-    
+
+    def client_kwargs(self):
+        """return shadllow copy of self._client_kwargs"""
+        return self._client_kwargs.copy()
+
     @cachedmethod(operator.attrgetter('_cache_access_key'), lock=operator.attrgetter('_rlock'))
     def access_key(self):
         """Return access key related to session"""
@@ -137,19 +141,19 @@ class Session(object):
     @cachedmethod(operator.attrgetter('_cache_account_id'), lock=operator.attrgetter('_rlock'))
     def account_id(self):
         """Return AWS account ID related to session"""
-        return self.boto3().client('sts', **self._client_kwargs).get_caller_identity()['Account']
+        return self.boto3().client('sts', **self.client_kwargs()).get_caller_identity()['Account']
     
     @cachedmethod(operator.attrgetter('_cache_user_id'), lock=operator.attrgetter('_rlock'))
     def user_id(self):
         """Return AWS user ID related to session"""
-        return self.boto3().client('sts', **self._client_kwargs).get_caller_identity()['UserId']
+        return self.boto3().client('sts', **self.client_kwargs()).get_caller_identity()['UserId']
     
     @cachedmethod(operator.attrgetter('_cache_arn'), lock=operator.attrgetter('_rlock'))
     def arn(self):
         """Return the AWS Arn related to session (includes user name)"""
         #this call can be region dependent.  e.g. if calling aws from a govcloud
         #acct, this would fail because aws doesn't understand accounts in govcloud.
-        return self.boto3().client('sts', **self._client_kwargs).get_caller_identity()['Arn']
+        return self.boto3().client('sts', **self.client_kwargs()).get_caller_identity()['Arn']
 SessionFactory = Factory(Session)
 
 @interface.implementer(ISession)

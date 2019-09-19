@@ -36,7 +36,7 @@ class Account(object):
     @cachedmethod(operator.attrgetter('_cache_aliases'), lock=operator.attrgetter('_rlock'))
     def aliases(self):
         """Return list of all account aliases"""
-        return self.session().boto3().client('iam').list_account_aliases()['AccountAliases']
+        return self.session().boto3().client('iam',**self.session().client_kwargs()).list_account_aliases()['AccountAliases']
     
     def session(self):
         """Return referenced cs.aws_account.Session object"""
