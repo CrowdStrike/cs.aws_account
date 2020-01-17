@@ -1,3 +1,20 @@
+"""
+The methods list_available_services() and list_api_versions() leverage 
+os.listdir() which is very slow when called from within 
+concurrent.futures.ThreadPoolExecutor instances.  Sadly, these are called when
+a boto3.Session.create_client() is called.  This process becomes prohibitive
+when the use-case creates new boto3 session objects in threads (like we do).
+
+We'll monkey patch these two services to leverage a global call cache (vs the 
+default instance call cache), which insures a caches across instances.
+"""
+import botocore.loaders
+from .monkies import global_cache
+botocore.loaders.Loader.list_available_services = \
+    global_cache(botocore.loaders.Loader.list_available_services)
+botocore.loaders.Loader.list_api_versions = \
+    global_cache(botocore.loaders.Loader.list_api_versions)
+
 from .interfaces import ISession
 from .interfaces import IAccount
 from .interfaces import IRegionalAccount
