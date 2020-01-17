@@ -1,3 +1,4 @@
+from datetime import datetime
 from cachetools import cached, cachedmethod, TTLCache
 from threading import local, RLock
 import operator
@@ -46,35 +47,63 @@ class Session(object):
         self._rlock = RLock()
         self._cache_ttl = cache_ttl
         self._client_kwargs = {}
+        self._credentials = {}
         if 'region_name' in SessionParameters:
             self._client_kwargs['region_name'] = SessionParameters['region_name']
         self._reset_caches()
     
+    def _get_credentials(self, boto3_session, sts_method='assume_role', **kwargs):
+        """Efficient Boto3 credentials getter
+        
+        Only one botocore.credentials.RefreshableCredentials object should
+        be needed per assume-role based boto3 session objects.  To prevent 
+        un-needed api calls for threaded usage, we'll syncronize access to a 
+        object-level storage.
+        
+        Same args as _assume_role()
+        """
+        #botocore.credentials.RefreshableCredentials is seemingly thread-safe
+        hash_ = boto3_session._aws_account_hash
+        role_id = "".join([str(v) for v in kwargs.values()])
+        with self._rlock:
+            if hash_ not in self._credentials:
+                self._credentials[hash_] = {}
+            if sts_method not in self._credentials[hash_]:
+                self._credentials[hash_][sts_method] = {}
+            if role_id not in self._credentials[hash_][sts_method]:
+                self._credentials[hash_][sts_method][role_id] = None
+        
+            if not self._credentials[hash_][sts_method][role_id]:
+                def refresh():
+                    logger.debug("Refreshing assumed role credentials for ARN {} with session name {}".format(kwargs.get('RoleArn',''),
+                                                                                                              kwargs.get('RoleSessionName','')))
+                    assume_role = getattr(boto3_session.client('sts', **self._client_kwargs), sts_method)
+                    credentials = assume_role(**kwargs)['Credentials']
+                    #mapping keys common among all assume_role call variations
+                    return dict(
+                        access_key=credentials['AccessKeyId'],
+                        secret_key=credentials['SecretAccessKey'],
+                        token=credentials['SessionToken'],
+                        expiry_time=credentials['Expiration'].isoformat())
+                
+                session_credentials = RefreshableCredentials.create_from_metadata(
+                                        metadata=refresh(),
+                                        refresh_using=refresh,
+                                        method='sts-{}'.format(sts_method.replace('_','-'))) # assume_role -> sts-assume-role
+                self._credentials[hash_][sts_method][role_id] = session_credentials
+            
+            return self._credentials[hash_][sts_method][role_id]
+    
     def _assume_role(self, boto3_session, sts_method='assume_role', **kwargs):
         """Stateless assume role call, returns Boto3 session with role assumption"""
         # https://programtalk.com/python-examples/botocore.credentials.RefreshableCredentials.create_from_metadata/
-        assume_role = getattr(boto3_session.client('sts', **self._client_kwargs), sts_method)
-        def refresh():
-            logger.debug("Refreshing assumed role credentials for ARN {} with session name {}".format(kwargs.get('RoleArn',''),
-                                                                                                      kwargs.get('RoleSessionName','')))
-            credentials = assume_role(**kwargs)['Credentials']
-            #mapping keys common among all assume_role call variations
-            return dict(
-                access_key=credentials['AccessKeyId'],
-                secret_key=credentials['SecretAccessKey'],
-                token=credentials['SessionToken'],
-                expiry_time=credentials['Expiration'].isoformat())
-        
-        session_credentials = RefreshableCredentials.create_from_metadata(
-                                metadata=refresh(),
-                                refresh_using=refresh,
-                                method='sts-{}'.format(sts_method.replace('_','-'))) # assume_role -> sts-assume-role
         s = get_session()
-        s._credentials = session_credentials
+        s._credentials = self._get_credentials(boto3_session, sts_method, **kwargs)
         return botoSession(botocore_session=s)
     
     def boto3(self):
         """Return threadlocal active boto3.session.Session object"""
+        #logger.debug("Preparing stack definition")
         with self._rlock:
             #make sure threadlocal boto3 stack entries are valid
             for i, _hash, _b3 in [(i, b3[0], b3[1],) for i, b3 in enumerate(self._local.boto3)]:
@@ -93,21 +122,20 @@ class Session(object):
             
         #Do these tasks outside the lock to allow concurrent calls
         #to independently build the threadlocal boto3 object
+        #logger.debug("Preparing threadlocal stack")
         for hash_, kwargs in stack:
             if not self._local.boto3:
-                self._local.boto3.append(
-                            (hash_, botoSession(**kwargs), )
-                                         )
+                b3 = botoSession(**kwargs)
+                b3._aws_account_hash = hash_ #mark the object with its hash
+                self._local.boto3.append((hash_, b3,))
             else:
-                self._local.boto3.append(
-                            (hash_, self._assume_role(
-                                            self._local.boto3[-1][1], **kwargs))
-                                         )
+                b3 = self._assume_role(self._local.boto3[-1][1], **kwargs)
+                b3._aws_account_hash = hash_ #mark the object with its hash
+                self._local.boto3.append((hash_, b3,))
         b3 = self._local.boto3[-1][1] #return lifo entry from threadlocal stack
-        #logger.debug("Returning Boto3.Session object with access key {}".format(b3.get_credentials().access_key))
+        logger.debug("Returning Boto3.Session object with access key {}".format(b3.get_credentials().access_key))
         return b3
         
-    
     def revert(self):
         """Set active boto3.session.Session object to previous, return pop'd threadlocal boto3.session.Session"""
         with self._rlock:
@@ -135,17 +163,20 @@ class Session(object):
     @cachedmethod(operator.attrgetter('_cache_access_key'), lock=operator.attrgetter('_rlock'))
     def access_key(self):
         """Return access key related to session"""
+        logger.debug("Refreshing access key cache")
         cr = self.boto3().get_credentials() #returns None if not authenticated
         return cr.access_key if cr else None
 
     @cachedmethod(operator.attrgetter('_cache_account_id'), lock=operator.attrgetter('_rlock'))
     def account_id(self):
         """Return AWS account ID related to session"""
+        logger.debug("Refreshing account id cache")
         return self.boto3().client('sts', **self.client_kwargs()).get_caller_identity()['Account']
     
     @cachedmethod(operator.attrgetter('_cache_user_id'), lock=operator.attrgetter('_rlock'))
     def user_id(self):
         """Return AWS user ID related to session"""
+        logger.debug("Refreshing user id cache")
         return self.boto3().client('sts', **self.client_kwargs()).get_caller_identity()['UserId']
     
     @cachedmethod(operator.attrgetter('_cache_arn'), lock=operator.attrgetter('_rlock'))
@@ -153,6 +184,7 @@ class Session(object):
         """Return the AWS Arn related to session (includes user name)"""
         #this call can be region dependent.  e.g. if calling aws from a govcloud
         #acct, this would fail because aws doesn't understand accounts in govcloud.
+        logger.debug("Refreshing arn cache")
         return self.boto3().client('sts', **self.client_kwargs()).get_caller_identity()['Arn']
 SessionFactory = Factory(Session)
 
