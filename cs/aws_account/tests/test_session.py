@@ -30,6 +30,26 @@ class IntegrationTestAWSAccountSession(unittest.TestCase):
         self.assertTrue(IBoto3Session.providedBy(b3))
         self.assertIs(b3, s.boto3())
     
+    def test_get_credentials(self):
+        lock = threading.Lock()
+        b3_sessions = []
+        s = Session(**self.session_kwargs)
+        s.assume_role(**self.assume_role_kwargs)
+        
+        def add_session(s, b3_sessions):
+            with lock:
+                b3_sessions.append(s.boto3())
+        
+        t1 = threading.Thread(target=add_session, args=[s, b3_sessions])
+        t2 = threading.Thread(target=add_session, args=[s, b3_sessions])
+        t1.start(); t2.start()
+        t1.join(); t2.join()
+        b3_sessions.append(s.boto3())
+        self.assertIs(b3_sessions[0]._session._credentials,
+                      b3_sessions[1]._session._credentials)
+        self.assertIs(b3_sessions[1]._session._credentials,
+                      b3_sessions[2]._session._credentials)
+    
     def test_access_key(self):
         s = Session(**self.session_kwargs)
         self.assertEqual(self.session_kwargs['aws_access_key_id'],
@@ -90,6 +110,16 @@ class IntegrationTestAWSAccountSession(unittest.TestCase):
         self.assertEqual(ak1, s.access_key())
         s.revert()
         self.assertEqual(ak1, s.access_key())
+        
+        s.assume_role(**self.assume_role_kwargs)
+        s1 = s.boto3()
+        s.revert()
+        s.assume_role(**self.assume_role_kwargs)
+        s2 = s.boto3()
+        s.revert()
+        s1.client('sts').get_caller_identity()['UserId']
+        s2.client('sts').get_caller_identity()['UserId']
+        
         
     def test_threadlocal_assume_role(self):
         s = Session(**self.session_kwargs)
