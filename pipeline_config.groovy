@@ -2,7 +2,7 @@ libraries{
   node{
     label = "prodsec_docker"
   }
-  pypi{
+  pypi_nexus{
     
   }
-}   
+}
