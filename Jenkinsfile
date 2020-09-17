@@ -1,1 +1,2 @@
-build_and_publish()
+build_and_publish_phab()
+build_and_publish_nexus()
