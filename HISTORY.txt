@@ -68,3 +68,8 @@ Changelog
 ++++++++++++++++++
 
 * Add unified pipeline build meta
+
+1.1.2
+++++++++++++++++++
+
+* Add ability to defer role assumption processing
