@@ -63,3 +63,13 @@ Changelog
 * Update cs.aws_account.session.Session to make more efficient usage of
   botocore.credentials.RefreshableCredentials object, sharing across threads
   to prevent multiple calls to AWS for the same effective creds.
+
+1.1.1
+++++++++++++++++++
+
+* Add unified pipeline build meta
+
+1.1.2
+++++++++++++++++++
+
+* Add ability to defer role assumption processing
