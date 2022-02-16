@@ -9,6 +9,7 @@ from cs.ratelimit import ratelimitedmethod, ratelimitproperties_factory
 from .account import account_factory
 from .interfaces import IRegionalAccount
 from cs.aws_account.caching_key import aggregated_string_hash
+from botocore.config import Config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -46,6 +47,7 @@ class RegionalAccount(object):
         _kwargs.update(kwargs)
         kwargs['service_name'] = service
         kwargs['region_name'] = self.region()
+        kwargs['config'] = Config(retries=dict(max_attempts=10))
         return self.account().session().boto3().client(**kwargs)
     
     @ratelimitedmethod(operator.attrgetter('ratelimit'))
