@@ -50,6 +50,8 @@ class Session(object):
         self._credentials = {}
         if 'region_name' in SessionParameters:
             self._client_kwargs['region_name'] = SessionParameters['region_name']
+            # https://aws.amazon.com/premiumsupport/knowledge-center/iam-validate-access-credentials/
+            self._client_kwargs['endpoint_url']='https://sts.{}.amazonaws.com'.format(SessionParameters['region_name'])
         self._reset_caches()
 
     def _get_credentials(self, boto3_session, sts_method='assume_role', **kwargs):
