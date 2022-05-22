@@ -1,8 +1,10 @@
 from cachetools import cached, cachedmethod, TTLCache
 from threading import local, RLock
+from typing import Optional
 import operator
-from zope.component.factory import Factory
 from zope import interface
+from zope.component.factory import Factory
+from zope.interface.common.collections import IMutableMapping
 from botocore.credentials import RefreshableCredentials
 from botocore.session import get_session
 from boto3.session import Session as botoSession
@@ -16,13 +18,13 @@ logger = logging.getLogger(__name__)
 @interface.implementer(ISession)
 class Session(object):
     """Thread safe boto3 Session accessor
-    
+
     Provides convienent access to boto3.session.Session() objects even in
     complex threaded environments with IAM role assumption.
-    
+
     Some method calls have memoizing TTL caches to improve performance of
-    common action calls (such as logging session information). 
-    
+    common action calls (such as logging session information).
+
     Kwargs:
         cache_ttl: Integer seconds time to live for cached method calls
         [boto3.session.Session]: See boto3.session.Session for other available kwargs
@@ -40,28 +42,31 @@ class Session(object):
         """Setup the thread safety and threadlocal data"""
 
         class tl_boto3(local):
-            boto3 = []  #threadlocal stack
+            boto3 = []  # threadlocal stack
 
-        self._local = tl_boto3()  #threadlocal data to protect the non-TS low-level Boto3 session
-        self._stack = [(aggregated_string_hash(SessionParameters), SessionParameters)]  #master stack
+        # We can't use the ServiceEndpoints directly in boto3 session creation,
+        # so we apply them to each client, depending on which service the client is for.
+        self._service_endpoints = SessionParameters.pop('ServiceEndpoints', {})
+
+        self._local = tl_boto3()  # threadlocal data to protect the non-TS low-level Boto3 session
+        self._stack = [(aggregated_string_hash(SessionParameters), SessionParameters)]  # master stack
         self._rlock = RLock()
         self._cache_ttl = cache_ttl
         self._client_kwargs = {}
+        self._service_endpoints = {}
         self._credentials = {}
         if 'region_name' in SessionParameters:
             self._client_kwargs['region_name'] = SessionParameters['region_name']
-            # https://aws.amazon.com/premiumsupport/knowledge-center/iam-validate-access-credentials/
-            self._client_kwargs['endpoint_url']='https://sts.{}.amazonaws.com'.format(SessionParameters['region_name'])
         self._reset_caches()
 
     def _get_credentials(self, boto3_session, sts_method='assume_role', **kwargs):
         """Efficient Boto3 credentials getter
-        
+
         Only one botocore.credentials.RefreshableCredentials object should
-        be needed per assume-role based boto3 session objects.  To prevent 
-        un-needed api calls for threaded usage, we'll syncronize access to a 
+        be needed per assume-role based boto3 session objects.  To prevent
+        un-needed api calls for threaded usage, we'll syncronize access to a
         object-level storage.
-        
+
         Same args as _assume_role()
         """
         #botocore.credentials.RefreshableCredentials is seemingly thread-safe
@@ -80,7 +85,7 @@ class Session(object):
                 def refresh():
                     logger.debug("Refreshing assumed role credentials for ARN {} with session name {}".format(kwargs.get('RoleArn', ''),
                                                                                                               kwargs.get('RoleSessionName', '')))
-                    assume_role = getattr(boto3_session.client('sts', **self._client_kwargs), sts_method)
+                    assume_role = getattr(boto3_session.client('sts', **self.client_kwargs(service='sts')), sts_method)
                     logger.debug('Attempting to assumed AWS Role with data {}'.format(kwargs))
                     credentials = assume_role(**kwargs)['Credentials']
                     logger.info('Assumed AWS Role with data {}'.format(kwargs))
@@ -162,9 +167,20 @@ class Session(object):
         else:
             logger.info('Deffering assumtion of AWS Role with args {}'.format(kwargs))
 
-    def client_kwargs(self):
-        """return shadllow copy of self._client_kwargs"""
-        return self._client_kwargs.copy()
+    def client_kwargs(self, service: Optional[str] = None) -> IMutableMapping:
+        """Return shallow copy of self._client_kwargs.
+
+        Args:
+            service (Optional[str]): If given, and a service endpoint override
+                is configured for the specified AWS service (e.g., 'sqs', 'sts'),
+                it will be added to the return client_kwargs dict.
+        """
+        client_kwargs = self._client_kwargs.copy()
+        if service:
+            endpoint_url = self._service_endpoints.get(service)
+            if endpoint_url:
+                client_kwargs['endpoint_url'] = endpoint_url
+        return client_kwargs
 
     @cachedmethod(operator.attrgetter('_cache_access_key'), lock=operator.attrgetter('_rlock'))
     def access_key(self):
@@ -177,13 +193,13 @@ class Session(object):
     def account_id(self):
         """Return AWS account ID related to session"""
         logger.debug("Refreshing account id cache")
-        return self.boto3().client('sts', **self.client_kwargs()).get_caller_identity()['Account']
+        return self.boto3().client('sts', **self.client_kwargs(service='sts')).get_caller_identity()['Account']
 
     @cachedmethod(operator.attrgetter('_cache_user_id'), lock=operator.attrgetter('_rlock'))
     def user_id(self):
         """Return AWS user ID related to session"""
         logger.debug("Refreshing user id cache")
-        return self.boto3().client('sts', **self.client_kwargs()).get_caller_identity()['UserId']
+        return self.boto3().client('sts', **self.client_kwargs(service='sts')).get_caller_identity()['UserId']
 
     @cachedmethod(operator.attrgetter('_cache_arn'), lock=operator.attrgetter('_rlock'))
     def arn(self):
@@ -191,7 +207,7 @@ class Session(object):
         #this call can be region dependent.  e.g. if calling aws from a govcloud
         #acct, this would fail because aws doesn't understand accounts in govcloud.
         logger.debug("Refreshing arn cache")
-        return self.boto3().client('sts', **self.client_kwargs()).get_caller_identity()['Arn']
+        return self.boto3().client('sts', **self.client_kwargs(service='sts')).get_caller_identity()['Arn']
 
 
 SessionFactory = Factory(Session)
@@ -201,18 +217,18 @@ SessionFactory = Factory(Session)
 @cached(cache={}, key=aggregated_string_hash, lock=RLock())
 def session_factory(SessionParameters=None, AssumeRole=None, AssumeRoles=None):
     """Caching cs.aws_account.session.Session factory
-    
+
     Common call signatures will return cached object.
-    
+
     Create cs.aws_account.session.Session object.  If AssumeRole parameter is
     available, then process the role assumption.  if AssumeRoles parameter
     is available, then process the series of role assumptions
-    
+
     Kwargs:
         SessionParameters: optional [see cs.aws_account.session.Session]
         AssumeRole: optional [see cs.aws_account.session.Session.assume_role]
         AssumeRoles: optional iterable of AssumeRole mappings
-    
+
     Returns:
         cs.aws_account.session.Session object
     """

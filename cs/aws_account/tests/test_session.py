@@ -196,3 +196,29 @@ class IntegrationTestAWSAccountSessionZCA(unittest.TestCase):
 
         s = component.createObject(u"cs.aws_account.cached_session")
         self.assertTrue(ISession.providedBy(s))
+
+
+class TestSessionClientKwargs(unittest.TestCase):
+    def setUp(self):
+        self.session_kwargs = {
+            'region_name': 'us-west-1',
+            'ServiceEndpoints': {
+                'sts': 'http://localhost:8080/test',
+            }
+        }
+
+    def test_without_service(self):
+        s = Session(**self.session_kwargs)
+        self.assertDictEqual(s.client_kwargs(), {'region_name': 'us-west-1'})
+
+    def test_with_service(self):
+        s = Session(**self.session_kwargs)
+        self.assertDictEqual(
+            s.client_kwargs(service='sts'),
+            {'region_name': 'us-west-1', 'endpoint_url': 'http://localhost:8080/test'}
+        )
+
+    def test_with_missing_service(self):
+        s = Session(**self.session_kwargs)
+        self.assertDictEqual(s.client_kwargs(service='invalid'), {'region_name': 'us-west-1'})
+
