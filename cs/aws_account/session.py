@@ -15,6 +15,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# Region list as of 2022-06-01. Note: A more future proof solution would be
+# to leverage boto3.get_available_regions, but we do this instead to prevent
+# additional API calls.
+AWS_REGIONS = set([
+    'af-south-1', 'ap-east-1', 'ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3',
+    'ap-south-1', 'ap-southeast-1', 'ap-southeast-2', 'ap-southeast-3', 'ca-central-1',
+    'eu-central-1', 'eu-north-1', 'eu-south-1', 'eu-west-1', 'eu-west-2', 'eu-west-3',
+    'me-south-1', 'sa-east-1', 'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2',
+    'us-gov-east-1', 'us-gov-west-1'
+])
+DEFAULT_AWS_REGION = 'us-west-2'
+
+
 @interface.implementer(ISession)
 class Session(object):
     """Thread safe boto3 Session accessor
@@ -45,7 +58,8 @@ class Session(object):
             boto3 = []  # threadlocal stack
 
         # We can't use the ServiceEndpoints directly in boto3 session creation,
-        # so we apply them to each client, depending on which service the client is for.
+        # so we apply them to each client, depending on which service the client is for,
+        # instead of adding them to the `_stack`.
         self._service_endpoints = SessionParameters.pop('ServiceEndpoints', {})
 
         self._local = tl_boto3()  # threadlocal data to protect the non-TS low-level Boto3 session
@@ -53,7 +67,6 @@ class Session(object):
         self._rlock = RLock()
         self._cache_ttl = cache_ttl
         self._client_kwargs = {}
-        self._service_endpoints = {}
         self._credentials = {}
         if 'region_name' in SessionParameters:
             self._client_kwargs['region_name'] = SessionParameters['region_name']
@@ -180,6 +193,19 @@ class Session(object):
             endpoint_url = self._service_endpoints.get(service)
             if endpoint_url:
                 client_kwargs['endpoint_url'] = endpoint_url
+                # When specifying endpoint_url, boto3 requires a region to be given,
+                # even for regionless services like iam, and we have to match the
+                # region to the endpoint, so we determine that here, or for non-region-scoped
+                # endpoints, provide a default.
+                #
+                # Yes, now that you mention it, this is unfortunate. :-P
+                if not client_kwargs.get('region_name'):
+                    parts = endpoint_url.split('.')
+                    for part in parts:
+                        if part in AWS_REGIONS:
+                            client_kwargs['region_name'] = part
+                    if not client_kwargs.get('region_name'):
+                        client_kwargs['region_name'] = DEFAULT_AWS_REGION
         return client_kwargs
 
     @cachedmethod(operator.attrgetter('_cache_access_key'), lock=operator.attrgetter('_rlock'))
