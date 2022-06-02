@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '1.2.4-alpha.1'
+version = '1.2.4'
 
 tests_require = [
     'zope.testrunner',
