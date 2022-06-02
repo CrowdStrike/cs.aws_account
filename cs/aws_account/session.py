@@ -67,7 +67,7 @@ class Session(object):
         # supply the appropriate CS cloud-based region as a default or the AWS
         # API call will fail.
         self._default_aws_region = SessionParameters.get(
-            'region_name', SessionParameters.pop('DefaultAWSRegions', DEFAULT_AWS_REGION))
+            'region_name', SessionParameters.pop('DefaultAWSRegion', DEFAULT_AWS_REGION))
 
         self._local = tl_boto3()  # threadlocal data to protect the non-TS low-level Boto3 session
         self._stack = [(aggregated_string_hash(SessionParameters), SessionParameters)]  # master stack
