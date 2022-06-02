@@ -6,6 +6,7 @@ from zope import interface
 from zope.component.factory import Factory
 from zope.interface.common.collections import IMutableMapping
 from botocore.credentials import RefreshableCredentials
+from botocore.exceptions import ClientError
 from botocore.session import get_session
 from boto3.session import Session as botoSession
 from .interfaces import ISession
@@ -107,7 +108,14 @@ class Session(object):
                                                                                                               kwargs.get('RoleSessionName', '')))
                     assume_role = getattr(boto3_session.client('sts', **self.client_kwargs(service='sts')), sts_method)
                     logger.debug('Attempting to assumed AWS Role with data {}'.format(kwargs))
-                    credentials = assume_role(**kwargs)['Credentials']
+                    try:
+                        credentials = assume_role(**kwargs)['Credentials']
+                    except ClientError as exc:
+                        logger.error(
+                            'assume role failed with client_kwargs [%s] and kwargs [%s]: %s',
+                            self._client_kwargs(service='sts'), kwargs, exc,)
+                        raise
+
                     logger.info('Assumed AWS Role with data {}'.format(kwargs))
                     #mapping keys common among all assume_role call variations
                     return dict(
