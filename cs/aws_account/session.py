@@ -113,7 +113,7 @@ class Session(object):
                     except ClientError as exc:
                         logger.error(
                             'assume role failed with client_kwargs [%s] and kwargs [%s]: %s',
-                            self._client_kwargs(service='sts'), kwargs, exc,)
+                            self.client_kwargs(service='sts'), kwargs, exc)
                         raise
 
                     logger.info('Assumed AWS Role with data {}'.format(kwargs))
