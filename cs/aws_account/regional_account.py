@@ -43,9 +43,9 @@ class RegionalAccount(object):
         return self._account
 
     def _get_client(self, service, **kwargs):
-        kwargs.update(self.account().session().client_kwargs(service=service))
         kwargs['service_name'] = service
         kwargs['region_name'] = self.region()
+        kwargs.update(self.account().session().client_kwargs(service=service))
         kwargs['config'] = Config(retries=dict(max_attempts=10))
         return self.account().session().boto3().client(**kwargs)
 

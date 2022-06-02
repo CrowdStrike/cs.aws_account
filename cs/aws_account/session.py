@@ -6,7 +6,6 @@ from zope import interface
 from zope.component.factory import Factory
 from zope.interface.common.collections import IMutableMapping
 from botocore.credentials import RefreshableCredentials
-from botocore.exceptions import ClientError
 from botocore.session import get_session
 from boto3.session import Session as botoSession
 from .interfaces import ISession
@@ -108,14 +107,7 @@ class Session(object):
                                                                                                               kwargs.get('RoleSessionName', '')))
                     assume_role = getattr(boto3_session.client('sts', **self.client_kwargs(service='sts')), sts_method)
                     logger.debug('Attempting to assumed AWS Role with data {}'.format(kwargs))
-                    try:
-                        credentials = assume_role(**kwargs)['Credentials']
-                    except ClientError as exc:
-                        logger.error(
-                            'assume role failed with client_kwargs [%s] and kwargs [%s]: %s',
-                            self.client_kwargs(service='sts'), kwargs, exc)
-                        raise
-
+                    credentials = assume_role(**kwargs)['Credentials']
                     logger.info('Assumed AWS Role with data {}'.format(kwargs))
                     #mapping keys common among all assume_role call variations
                     return dict(
@@ -214,13 +206,16 @@ class Session(object):
                 # endpoints, provide a default.
                 #
                 # Yes, now that you mention it, this is unfortunate. :-P
+                kwarg_region = client_kwargs.get('region_name')
+                endpoint_region = None
+                endpoint_url_parts = endpoint_url.split('.')
+                for part in endpoint_url_parts:
+                    if part in AWS_REGIONS:
+                        endpoint_region = part
+                if not kwarg_region or (endpoint_region and kwarg_region != endpoint_region):
+                    client_kwargs['region_name'] = endpoint_region
                 if not client_kwargs.get('region_name'):
-                    parts = endpoint_url.split('.')
-                    for part in parts:
-                        if part in AWS_REGIONS:
-                            client_kwargs['region_name'] = part
-                    if not client_kwargs.get('region_name'):
-                        client_kwargs['region_name'] = self._default_aws_region
+                    client_kwargs['region_name'] = self._default_aws_region
         return client_kwargs
 
     @cachedmethod(operator.attrgetter('_cache_access_key'), lock=operator.attrgetter('_rlock'))

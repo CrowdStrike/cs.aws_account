@@ -222,12 +222,12 @@ class TestSessionClientKwargs(unittest.TestCase):
         s = Session(**self.session_kwargs)
         self.assertDictEqual(s.client_kwargs(service='invalid'), {'region_name': 'us-west-1'})
 
-    def test_region_name_supersedes_endpoint_region(self):
+    def test_endpoint_region_supersedes_region_name(self):
         self.session_kwargs['ServiceEndpoints']['sts'] = 'https://sts.ap-east-1.com'
         s = Session(**self.session_kwargs)
         self.assertDictEqual(
             s.client_kwargs(service='sts'),
-            {'region_name': 'us-west-1', 'endpoint_url': 'https://sts.ap-east-1.com'}
+            {'region_name': 'ap-east-1', 'endpoint_url': 'https://sts.ap-east-1.com'}
         )
 
     def test_region_name_added_for_region_scoped_endpoint(self):
