@@ -58,9 +58,16 @@ class Session(object):
             boto3 = []  # threadlocal stack
 
         # We can't use the ServiceEndpoints directly in boto3 session creation,
-        # so we apply them to each client, depending on which service the client is for,
-        # instead of adding them to the `_stack`.
+        # so we apply them to each client, depending on which service the
+        # client is for, instead of adding them to the `_stack`.
         self._service_endpoints = SessionParameters.pop('ServiceEndpoints', {})
+
+        # When setting `endpoint_url`, `region_name` is required, and can usually be
+        # determined by the url itself, but for non-region-scoped endpoints, we must
+        # supply the appropriate CS cloud-based region as a default or the AWS
+        # API call will fail.
+        self._default_aws_region = SessionParameters.get(
+            'region_name', SessionParameters.pop('DefaultAWSRegions', DEFAULT_AWS_REGION))
 
         self._local = tl_boto3()  # threadlocal data to protect the non-TS low-level Boto3 session
         self._stack = [(aggregated_string_hash(SessionParameters), SessionParameters)]  # master stack
@@ -205,7 +212,7 @@ class Session(object):
                         if part in AWS_REGIONS:
                             client_kwargs['region_name'] = part
                     if not client_kwargs.get('region_name'):
-                        client_kwargs['region_name'] = DEFAULT_AWS_REGION
+                        client_kwargs['region_name'] = self._default_aws_region
         return client_kwargs
 
     @cachedmethod(operator.attrgetter('_cache_access_key'), lock=operator.attrgetter('_rlock'))
