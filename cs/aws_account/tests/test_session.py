@@ -5,7 +5,7 @@ import time
 from zope import component
 from zope.interface.verify import verifyObject
 from ..testing import AWS_ACCOUNT_INTEGRATION_LAYER
-from cs.aws_account.session import Session, session_factory, DEFAULT_AWS_REGION
+from cs.aws_account.session import Session, session_factory
 from cs.aws_account.b3 import IBoto3Session
 from ..interfaces import ISession
 
@@ -203,46 +203,47 @@ class TestSessionClientKwargs(unittest.TestCase):
         self.session_kwargs = {
             'region_name': 'us-west-1',
             'ServiceEndpoints': {
-                'sts': 'http://localhost:8080/test',
+                'sts': 'https://test.sts.us-west-1.com/test',
+                'sqs': {
+                    'us-west-1': 'https://test.sqs.us-west-1.com/test',
+                    'eu-central-1': 'https://test.sqs.eu-central-1.com/test',
+                }
             }
         }
 
-    def test_without_service(self):
+    def test_with_service_and_session_region_matches_endpoint_region(self):
+        s = Session(**self.session_kwargs)
+        self.assertDictEqual(
+            s.client_kwargs(service='sts'),
+            {'region_name': 'us-west-1', 'endpoint_url': 'https://test.sts.us-west-1.com/test'}
+        )
+
+    def test_cross_region_service_endpoint(self):
+        s = Session(**self.session_kwargs)
+        self.assertDictEqual(
+            s.client_kwargs(service='sqs'),
+            {'region_name': 'us-west-1', 'endpoint_url': 'https://test.sqs.us-west-1.com/test'}
+        )
+
+    def test_no_endpoint_url_added_without_service(self):
         s = Session(**self.session_kwargs)
         self.assertDictEqual(s.client_kwargs(), {'region_name': 'us-west-1'})
 
-    def test_with_service(self):
-        s = Session(**self.session_kwargs)
-        self.assertDictEqual(
-            s.client_kwargs(service='sts'),
-            {'region_name': 'us-west-1', 'endpoint_url': 'http://localhost:8080/test'}
-        )
-
-    def test_with_missing_service(self):
+    def test_no_endpoint_url_added_with_service_not_in_endpoints_map(self):
         s = Session(**self.session_kwargs)
         self.assertDictEqual(s.client_kwargs(service='invalid'), {'region_name': 'us-west-1'})
 
-    def test_endpoint_region_supersedes_region_name(self):
+    def test_no_endpoint_url_added_with_service_not_in_cross_region_endpoints_map(self):
+        self.session_kwargs['region_name'] = 'us-west-2'
+        s = Session(**self.session_kwargs)
+        self.assertDictEqual(s.client_kwargs(service='sqs'), {'region_name': 'us-west-2'})
+
+    def test_no_endpoint_url_added_for_session_region_mismatch(self):
         self.session_kwargs['ServiceEndpoints']['sts'] = 'https://sts.ap-east-1.com'
         s = Session(**self.session_kwargs)
-        self.assertDictEqual(
-            s.client_kwargs(service='sts'),
-            {'region_name': 'ap-east-1', 'endpoint_url': 'https://sts.ap-east-1.com'}
-        )
+        self.assertDictEqual(s.client_kwargs(service='sts'), {'region_name': 'us-west-1'})
 
-    def test_region_name_added_for_region_scoped_endpoint(self):
-        self.session_kwargs.pop('region_name')
-        self.session_kwargs['ServiceEndpoints']['sts'] = 'https://sts.ap-east-1.com'
-        s = Session(**self.session_kwargs)
-        self.assertDictEqual(
-            s.client_kwargs(service='sts'),
-            {'region_name': 'ap-east-1', 'endpoint_url': 'https://sts.ap-east-1.com'}
-        )
-
-    def test_default_region_name_added_for_non_region_scoped_endpoint(self):
+    def test_no_endpoint_added_without_session_region(self):
         self.session_kwargs.pop('region_name')
         s = Session(**self.session_kwargs)
-        self.assertDictEqual(
-            s.client_kwargs(service='sts'),
-            {'region_name': DEFAULT_AWS_REGION, 'endpoint_url': 'http://localhost:8080/test'}
-        )
+        self.assertDictEqual(s.client_kwargs(service='sts'), {})
