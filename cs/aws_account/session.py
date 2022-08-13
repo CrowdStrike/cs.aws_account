@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from cachetools import cached, cachedmethod, TTLCache
 from threading import local, RLock
 from typing import Optional
@@ -25,7 +26,6 @@ AWS_REGIONS = set([
     'me-south-1', 'sa-east-1', 'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2',
     'us-gov-east-1', 'us-gov-west-1'
 ])
-DEFAULT_AWS_REGION = 'us-west-2'
 
 
 @interface.implementer(ISession)
@@ -61,13 +61,6 @@ class Session(object):
         # so we apply them to each client, depending on which service the
         # client is for, instead of adding them to the `_stack`.
         self._service_endpoints = SessionParameters.pop('ServiceEndpoints', {})
-
-        # When setting `endpoint_url`, `region_name` is required, and can usually be
-        # determined by the url itself, but for non-region-scoped endpoints, we must
-        # supply the appropriate CS cloud-based region as a default or the AWS
-        # API call will fail.
-        self._default_aws_region = SessionParameters.get(
-            'region_name', SessionParameters.pop('DefaultAWSRegion', DEFAULT_AWS_REGION))
 
         self._local = tl_boto3()  # threadlocal data to protect the non-TS low-level Boto3 session
         self._stack = [(aggregated_string_hash(SessionParameters), SessionParameters)]  # master stack
@@ -196,26 +189,26 @@ class Session(object):
                 it will be added to the return client_kwargs dict.
         """
         client_kwargs = self._client_kwargs.copy()
-        if service:
+        kwarg_region = client_kwargs.get('region_name')
+        if service and kwarg_region:
             endpoint_url = self._service_endpoints.get(service)
+
+            # handle cross-region VPC endpoints
+            if isinstance(endpoint_url, Mapping):
+                endpoint_url = endpoint_url.get(kwarg_region, None)
+
+            # if we have a VPCe URL for this region
             if endpoint_url:
-                client_kwargs['endpoint_url'] = endpoint_url
-                # When specifying endpoint_url, boto3 requires a region to be given,
-                # even for regionless services like iam, and we have to match the
-                # region to the endpoint, so we determine that here, or for non-region-scoped
-                # endpoints, provide a default.
-                #
-                # Yes, now that you mention it, this is unfortunate. :-P
-                kwarg_region = client_kwargs.get('region_name')
                 endpoint_region = None
                 endpoint_url_parts = endpoint_url.split('.')
                 for part in endpoint_url_parts:
                     if part in AWS_REGIONS:
                         endpoint_region = part
-                if not kwarg_region or (endpoint_region and kwarg_region != endpoint_region):
-                    client_kwargs['region_name'] = endpoint_region
-                if not client_kwargs.get('region_name'):
-                    client_kwargs['region_name'] = self._default_aws_region
+                # iff the VPCe region and operation match, use the VPCe for that region.
+                # Otherwise, we have no choice but to bypass the VPCe and hit the egress
+                # proxy directly, since boto3 requires a region if endpoint_url is also given.
+                if endpoint_region and endpoint_region == kwarg_region:
+                    client_kwargs['endpoint_url'] = endpoint_url
         return client_kwargs
 
     @cachedmethod(operator.attrgetter('_cache_access_key'), lock=operator.attrgetter('_rlock'))
