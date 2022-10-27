@@ -16,7 +16,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# Region list as of 2022-06-01. Note: A more future proof solution would be
+# Region list as of 2022-10-27. Note: A more future proof solution would be
 # to leverage boto3.get_available_regions, but we do this instead to prevent
 # additional API calls.
 AWS_REGIONS = set([
@@ -26,6 +26,8 @@ AWS_REGIONS = set([
     'me-south-1', 'sa-east-1', 'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2',
     'us-gov-east-1', 'us-gov-west-1'
 ])
+
+
 
 
 @interface.implementer(ISession)
