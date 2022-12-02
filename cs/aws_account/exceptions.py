@@ -8,8 +8,9 @@ class AWSClientException(Exception):
         self._error = error
         self._account = kwargs['AccountAlias']
         self._region = kwargs['Region']
+        self._error_message = "Error message: {}. Account: {}. Region: {}".format(str(self._error),str(self._account),str(self._region))
+        kwargs['message'] = self._error_message
         super().__init__(*args, **kwargs)
 
     def __str__(self):
-        error_statement = "Error message: {}. Account: {}. Region: {}".format(str(self._error),str(self._account),str(self._region))
-        return error_statement
+        return str(self._error_message)
