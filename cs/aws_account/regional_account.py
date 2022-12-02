@@ -10,6 +10,7 @@ from .account import account_factory
 from .interfaces import IRegionalAccount
 from cs.aws_account.caching_key import aggregated_string_hash
 from botocore.config import Config
+from .exceptions import AWSClientException
 
 import logging
 logger = logging.getLogger(__name__)
@@ -60,7 +61,10 @@ class RegionalAccount(object):
                             self._account.session().arn()
                             )
         logger.debug(debug_msg)
-        return callback(**kwargs)
+        try:
+            return callback(**kwargs)
+        except AWSClientException as e:
+            raise e(AccountAlias=self._account.alias(),Region=self._region_name)
 
     def call_client(self, service, method, client_kwargs=None, **kwargs):
         """Return call to boto3 service client method limited by properties in ratelimit
