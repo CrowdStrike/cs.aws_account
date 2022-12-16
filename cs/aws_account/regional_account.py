@@ -64,7 +64,7 @@ class RegionalAccount(object):
         try:
             return callback(**kwargs)
         except Exception as e:
-            raise AWSClientException(e,AccountAlias=self._account.alias(),Region=self._region_name)
+            raise AWSClientException(e,AccountAlias=self._account.alias(),Region=self._region_name,AccountId=self._account.account_id())
 
     def call_client(self, service, method, client_kwargs=None, **kwargs):
         """Return call to boto3 service client method limited by properties in ratelimit
