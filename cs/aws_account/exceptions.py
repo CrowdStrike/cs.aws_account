@@ -1,6 +1,6 @@
-# from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError
 
-class AWSClientException(Exception):
+class AWSClientException(ClientError):
     """Represents an boto3 error raised from making a call to AWS API."""
     def __init__(self, error, *args, **kwargs):
         """
