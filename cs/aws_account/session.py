@@ -178,7 +178,7 @@ class Session(object):
             self._stack.append((aggregated_string_hash(kwargs), kwargs,))
             self._reset_caches()
         if not deferred:
-            self.boto3()  #init, raises on error
+            self.boto3()  # init, raises on error
         else:
             logger.info('Deffering assumtion of AWS Role with args {}'.format(kwargs))
 
@@ -195,20 +195,20 @@ class Session(object):
         if service and kwarg_region:
             endpoint_url = self._service_endpoints.get(service)
 
-            # handle cross-region VPC endpoints
+            # handle cross-region custom endpoints
             if isinstance(endpoint_url, Mapping):
                 endpoint_url = endpoint_url.get(kwarg_region, None)
 
-            # if we have a VPCe URL for this region
+            # if we have a custom endpoint for this region
             if endpoint_url:
                 endpoint_region = None
                 endpoint_url_parts = endpoint_url.split('.')
                 for part in endpoint_url_parts:
                     if part in AWS_REGIONS:
                         endpoint_region = part
-                # iff the VPCe region and operation match, use the VPCe for that region.
-                # Otherwise, we have no choice but to bypass the VPCe and hit the egress
-                # proxy directly, since boto3 requires a region if endpoint_url is also given.
+                # Iff the custom endpoint region and operation match, use the endpoint for that region.
+                # Otherwise, we have no choice but to fallback to the default endpoint, since boto3
+                # requires a region if endpoint_url is also given.
                 if endpoint_region and endpoint_region == kwarg_region:
                     client_kwargs['endpoint_url'] = endpoint_url
         return client_kwargs
