@@ -1,3 +1,4 @@
+"""Test helpers for cs.aws_account."""
 import warnings
 
 from zope.component.testlayer import ZCMLFileLayer

@@ -1,41 +1,70 @@
 from setuptools import setup, find_packages
 
-version = '1.2.12'
+version = '1.3.0'
 
 tests_require = [
     'zope.testrunner',
-    'zope.configuration'
+    'zope.configuration',
+    'bandit',
+    'coverage',
 ]
+
 
 doc_tests_require = [
     'pyyaml',
-    'Jinja2'
+    'Jinja2',
 ]
+
+
+lint_require = [
+    'flake8',
+    'pydocstyle',
+    'pylint',
+]
+
+
+with open('README.md', 'r', encoding='utf-8') as fh:
+    long_description = fh.read()
+
 
 setup(name='cs.aws_account',
       version=version,
       description="AWS account components",
-      long_description=open("README.md").read() + "\n" +
-                       open("CHANGELOG.md").read(),
-      # Get more strings from
-      # http://pypi.python.org/pypi?:action=list_classifiers
+      long_description=long_description,
       classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
-        'License :: Other/Proprietary License',
         'Natural Language :: English',
-        "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
+        "Operating System :: Unix",
+        "Operating System :: POSIX",
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: MacOS",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        'Framework :: Zope'
+        'Framework :: Flake8'
+        'License :: OSI Approved :: MIT License',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+        'Topic :: Utilities',
       ],
       author='David Davis',
       author_email='david.davis@crowdstrike.com',
-      url='http://stash.cs.sys/projects/PSO/repos/cs.aws_account/browse',
+      maintainer='Forrest Aldridge',
+      maintainer_email='forrest.aldridge@crowdstrike.com',
+      url='https://github.com/CrowdStrike/cs.aws_account',
       packages=find_packages(exclude=['ez_setup']),
       namespace_packages=['cs'],
       include_package_data=True,
       package_data={
-          '': ['*.zcml', '*.yaml']
+          '': ['*.zcml', '*.yaml', '*.md']
       },
       zip_safe=False,
       install_requires=[
@@ -50,9 +79,9 @@ setup(name='cs.aws_account',
           'cs.ratelimit'
       ],
       extras_require={
-            'testing': tests_require,
-            'doc_testing': doc_tests_require
+            'dev': tests_require + doc_tests_require + lint_require,
       },
-      entry_points={
-          },
+      entry_points={},
+      scripts=['util/run-tests.sh', 'util/lint.sh'],
+      python_requires='>=3.6',
       )

@@ -1,0 +1,2 @@
+[flake8]
+exclude=cs/aws_account/__init__.py
