@@ -1,11 +1,10 @@
 from typing import Optional
 
+from cs import ratelimit
 from zope import interface
+from zope import schema
 from zope.interface.common.collections import IMutableMapping
 from zope.interface.common.mapping import IEnumerableMapping
-from zope import schema
-
-from cs import ratelimit
 
 
 class ISession(interface.Interface):
@@ -126,7 +125,7 @@ class IRegionalAccounts(IEnumerableMapping):
     filter = schema.Dict(
             title=u"Filter",
             description=u"The container filter specification",
-            readonly=True,  #but still mutable
+            readonly=True,  # but still mutable
             required=True
         )
 
@@ -135,7 +134,8 @@ class IRegionalAccounts(IEnumerableMapping):
 
 
 class IRegionalAccountSet(interface.Interface):
-    """A container of IRegionalAccounts providers that iterates over their content values (IRegionalAccount providers)"""
+    """A container of IRegionalAccounts providers that iterates over their content values (IRegionalAccount providers).
+    """
 
     def add(regional_accounts):
         """Adds IRegionalAccounts provider to include for iteration if not available"""
@@ -148,4 +148,3 @@ class IRegionalAccountSet(interface.Interface):
 
     def __iter__():
         """Iterator of unique IRegionalAccount providers from available IRegionalAccounts providers"""
-

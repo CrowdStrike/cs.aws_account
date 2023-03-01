@@ -34,13 +34,13 @@ setup(name='cs.aws_account',
       packages=find_packages(exclude=['ez_setup']),
       namespace_packages=['cs'],
       include_package_data=True,
-      package_data = {
+      package_data={
           '': ['*.zcml', '*.yaml']
-        },
+      },
       zip_safe=False,
       install_requires=[
           'setuptools',
-          'zope.security', # for zcml processing dep
+          'zope.security',  # for zcml processing dep
           'zope.component',
           'zope.interface',
           'zope.schema',

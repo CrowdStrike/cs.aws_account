@@ -4,7 +4,7 @@ def aggregated_string_hash(*args, **kwargs):
     _id = ''
     for arg in args:
         _id += u"{}".format(arg)
-    
+
     if kwargs:
         keys = sorted(kwargs.keys())
         for k in keys:
