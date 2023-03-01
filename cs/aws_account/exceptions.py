@@ -1,6 +1,11 @@
+"""Provides custom exceptions for cs.aws_account."""
+
+
 class AWSClientException(Exception):
     """Represents an boto3 error raised from making a call to AWS API."""
-    def __init__(self, error, *args, **kwargs):
+
+    def __init__(self, error, *_, **kwargs):
+        """Prepare the error message from the given error."""
         self._error = error
         self._account = kwargs['AccountAlias']
         self._account_id = kwargs['AccountId']
@@ -16,9 +21,11 @@ class AWSClientException(Exception):
               "UnrecognizedClientException" in error_string):
             self._warning = ("Attempted to access a non-existent resource. "
                              "Ensure the action, account, and region are removed from the RAS filter")
-        self._error_message = "Error message: {}. Account Alias: {}. Account ID: {}. Region: {}. Warning: {}".format(
-            error_string, str(self._account), str(self._account_id), str(self._region), str(self._warning))
+        self._error_message = (f"Error message: {error_string}. Account Alias: {str(self._account)}. "
+                               f"Account ID: {str(self._account_id)}. "
+                               f"Region: {str(self._region)}. Warning: {str(self._warning)}")
         super().__init__(self._error_message)
 
     def __str__(self):
+        """Emit the prepared error message."""
         return str(self._error_message)

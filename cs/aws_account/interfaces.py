@@ -1,20 +1,23 @@
+"""Declares interfaces for wiring components together."""
+# pylint: disable=inherit-non-class, no-method-argument, no-self-argument, too-many-ancestors
 from typing import Optional
 
-from cs import ratelimit
 from zope import interface
 from zope import schema
 from zope.interface.common.collections import IMutableMapping
 from zope.interface.common.mapping import IEnumerableMapping
 
+from cs import ratelimit
+
 
 class ISession(interface.Interface):
-    """Boto3 Session accessor"""
+    """Boto3 Session accessor."""
 
     def boto3():
-        """Return active boto3 session"""
+        """Return active boto3 session."""
 
     def assume_role(sts_method='assume_role', deferred=False, **kwargs):
-        """Replace active boto3 session with assumed role boto3 session
+        """Replace active boto3 session with assumed role boto3 session.
 
         Kwargs:
             sts_method: name of sts Client method used to execute the role assumption
@@ -44,54 +47,54 @@ class ISession(interface.Interface):
         """
 
     def access_key():
-        """Return access key string in use for the referenced boto3 object"""
+        """Return access key string in use for the referenced boto3 object."""
 
     def account_id():
-        """Return AWS account identity string in use for the referenced boto3 object"""
+        """Return AWS account identity string in use for the referenced boto3 object."""
 
     def user_id():
-        """Return AWS account identity string in use for the referenced boto3 object"""
+        """Return AWS account identity string in use for the referenced boto3 object."""
 
     def arn():
-        """Return AWS account identity string in use for the referenced boto3 object"""
+        """Return AWS account identity string in use for the referenced boto3 object."""
 
 
 class IAccount(interface.Interface):
-    """AWS account"""
+    """AWS account."""
 
     def account_id():
-        """Return AWS account identity string"""
+        """Return AWS account identity string."""
 
     def alias():
-        """Return first AWS account alias string else account identity"""
+        """Return first AWS account alias string else account identity."""
 
     def aliases():
-        """Return iterable of all AWS account alias strings"""
+        """Return iterable of all AWS account alias strings."""
 
     def session():
-        """Return ISession provider"""
+        """Return ISession provider."""
 
 
 class IRegionalAccount(interface.Interface):
-    """A boto3 session client caller with rate limiting capabilities"""
+    """A boto3 session client caller with rate limiting capabilities."""
 
     ratelimit = schema.Object(
-            title=u"Rate limit properties",
-            description=u"Rate limiting properties",
+            title="Rate limit properties",
+            description="Rate limiting properties",
             required=True,
             schema=ratelimit.IRateLimitProperties
         )
 
     def account():
-        """Return IAccount provider"""
+        """Return IAccount provider."""
 
     def region():
-        """Return AWS region string"""
+        """Return AWS region string."""
 
     def call_client(self, service, method, client_kwargs=None, **kwargs):
-        """Return call to boto3 service client method limited by properties in ratelimit
+        """Return call to boto3 service client method limited by properties in ratelimit.
 
-        This can raise cs.ratelimit.RateLimitExceeded based on ratelimit settings
+        This can raise cs.ratelimit.RateLimitExceeded based on ratelimit settings.
 
         Raises:
             [dependent on named boto3 service method]
@@ -110,41 +113,38 @@ class IRegionalAccount(interface.Interface):
         """
 
     def get_paginator(service, method, client_kwargs=None, **kwargs):
-        """Return paginator for boto3 service client method limited by properties in ratelimit
+        """Return paginator for boto3 service client method limited by properties in ratelimit.
 
-        same call features as call_client() except calls are accessed via
-        a returned paginator
+        Same call features as call_client() except calls are accessed via
+        a returned paginator.
         """
 
 
 class IRegionalAccounts(IEnumerableMapping):
-    """Mapping whose keys are AWS region strings and values are
-    related IRegionalAccount providers
-    """
+    """Mapping whose keys are AWS region strings and values are related IRegionalAccount providers."""
 
     filter = schema.Dict(
-            title=u"Filter",
-            description=u"The container filter specification",
+            title="Filter",
+            description="The container filter specification",
             readonly=True,  # but still mutable
             required=True
         )
 
     def account():
-        """Return IAccount provider"""
+        """Return IAccount provider."""
 
 
 class IRegionalAccountSet(interface.Interface):
-    """A container of IRegionalAccounts providers that iterates over their content values (IRegionalAccount providers).
-    """
+    """A container of IRegionalAccounts providers that iterates over their IRegionalAccount providers."""
 
     def add(regional_accounts):
-        """Adds IRegionalAccounts provider to include for iteration if not available"""
+        """Add IRegionalAccounts provider to include for iteration if not available."""
 
     def discard(regional_accounts):
-        """Discards IRegionalAccounts provider from iteration if available"""
+        """Discard IRegionalAccounts provider from iteration if available."""
 
     def values():
-        """frozenset of available IRegionalAccounts providers"""
+        """Frozenset of available IRegionalAccounts providers."""
 
     def __iter__():
-        """Iterator of unique IRegionalAccount providers from available IRegionalAccounts providers"""
+        """Iterate unique IRegionalAccount providers from available IRegionalAccounts providers."""

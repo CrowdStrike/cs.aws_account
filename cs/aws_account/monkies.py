@@ -1,6 +1,9 @@
+"""Monkey patching for various botocore features."""
 from threading import RLock
 
 from botocore.loaders import Loader
+# pylint: disable=global-variable-not-assigned, invalid-name
+
 
 _cache = {}
 _lock = RLock()
@@ -30,4 +33,5 @@ Loader_init_orig = Loader.__init__
 
 
 def Loader_init_monkey(*args, **kwargs):
+    """Wrap and monkey patch the original botocore Loader."""
     Loader_init_orig(*args, **kwargs)

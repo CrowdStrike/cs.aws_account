@@ -1,3 +1,4 @@
+"""Components for interacting with individual AWS Accounts by region."""
 from threading import RLock
 import logging
 import operator
@@ -5,15 +6,16 @@ import types
 
 from botocore.config import Config
 from cachetools import cached
-from cs.ratelimit import ratelimitedmethod, ratelimitproperties_factory
 from zope import interface
 from zope.component.factory import Factory
 from zope.schema.fieldproperty import FieldProperty
 
+from cs.ratelimit import ratelimitedmethod, ratelimitproperties_factory
+
 from .account import account_factory
+from .caching_key import aggregated_string_hash
 from .exceptions import AWSClientException
 from .interfaces import IRegionalAccount
-from cs.aws_account.caching_key import aggregated_string_hash
 
 
 logger = logging.getLogger(__name__)
@@ -21,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 @interface.implementer(IRegionalAccount)
 class RegionalAccount:
-    """A boto3 session client caller with rate limiting capabilities
+    """A boto3 session client caller with rate limiting capabilities.
 
     Args:
         ratelimit: cs.ratelimit.RateLimitProperties instance that is referenced
@@ -31,49 +33,46 @@ class RegionalAccount:
         region_name: Valid string region_name for all boto3 calls
     """
 
-    """cs.ratelimit.RateLimitProperties instance"""
-    ratelimit = FieldProperty(IRegionalAccount['ratelimit'])
+    ratelimit = FieldProperty(IRegionalAccount['ratelimit'])  # cs.ratelimit.RateLimitProperties instance
 
     def __init__(self, ratelimit, account, region_name=None):
+        """Initialize the RegionalAccount instance."""
         self.ratelimit = ratelimit
         self._account = account
         self._region_name = region_name
 
     def region(self):
-        """Return referenced boto3 region_name string"""
+        """Return referenced boto3 region_name string."""
         return self._region_name
 
     def account(self):
-        """Return referenced cs.aws_account.Account instance"""
+        """Return referenced cs.aws_account.Account instance."""
         return self._account
 
     def _get_client(self, service, **kwargs):
         kwargs['service_name'] = service
         kwargs['region_name'] = self.region()
         kwargs.update(self.account().session().client_kwargs(service=service))
-        kwargs['config'] = Config(retries=dict(max_attempts=10))
+        kwargs['config'] = Config(retries={"max_attempts": 10})
         return self.account().session().boto3().client(**kwargs)
 
     @ratelimitedmethod(operator.attrgetter('ratelimit'))
     def _limited(self, callback, **kwargs):
-        debug_msg = "calling AWS method {} for account {} ({}) region {} with user arn {}".\
-                        format(
-                            callback,
-                            self._account.account_id(),
-                            self._account.alias(),
-                            self._region_name,
-                            self._account.session().arn()
-                            )
-        logger.debug(debug_msg)
+        logger.debug("calling AWS method %s for account %s (%s) region %s with user arn %s",
+                     callback,
+                     self._account.account_id(),
+                     self._account.alias(),
+                     self._region_name,
+                     self._account.session().arn())
         try:
             return callback(**kwargs)
-        except Exception as e:
+        except Exception as exc:
             raise AWSClientException(
-                e, AccountAlias=self._account.alias(), Region=self._region_name,
-                AccountId=self._account.account_id())
+                exc, AccountAlias=self._account.alias(), Region=self._region_name,
+                AccountId=self._account.account_id()) from exc
 
     def call_client(self, service, method, client_kwargs=None, **kwargs):
-        """Return call to boto3 service client method limited by properties in ratelimit
+        """Return call to boto3 service client method limited by properties in ratelimit.
 
         This can raise cs.ratelimit.RateLimitExceeded based on ratelimit settings
 
@@ -94,10 +93,7 @@ class RegionalAccount:
         """
         client_kwargs = {} if not client_kwargs else client_kwargs
         client = self._get_client(service, **client_kwargs)
-        try:
-            return self._limited(getattr(client, method), **kwargs)
-        except AWSClientException as e:
-            raise e 
+        return self._limited(getattr(client, method), **kwargs)  # can raise AWSClientException
 
     def get_paginator(self, service, method, client_kwargs=None):
         """Return paginator for boto3 service client method limited by properties in ratelimit.
@@ -110,12 +106,13 @@ class RegionalAccount:
 
         def paginate(self, **kwargs):
             page_iterator = self.__wrapped__(**kwargs)  # get the default paginator from boto3
-            _orig_method = page_iterator._method
+            _orig_method = page_iterator._method  # pylint: disable=protected-access
 
-            def _method(self, **kwargs):
+            def _method(_, **kwargs):
                 return _limited(_orig_method, **kwargs)
 
-            page_iterator._method = types.MethodType(_method, page_iterator)  # over-ride with rate-limited method.
+            # over-ride with rate-limited method.
+            page_iterator._method = types.MethodType(_method, page_iterator)  # pylint: disable=protected-access
             return page_iterator
 
         client = self._get_client(service, **client_kwargs)
@@ -130,8 +127,8 @@ RegionalAccountFactory = Factory(RegionalAccount)
 
 @interface.implementer(IRegionalAccount)
 @cached(cache={}, key=aggregated_string_hash, lock=RLock())
-def regional_account_factory(RateLimit=None, Account=None, region_name=None):
-    """Caching cs.aws_account.regional_account.RegionalAccount factory
+def regional_account_factory(RateLimit=None, Account=None, region_name=None):  # pylint: disable=invalid-name
+    """Create a cached cs.aws_account.regional_account.RegionalAccount.
 
     Common call signatures will return cached object.
 
@@ -147,9 +144,9 @@ def regional_account_factory(RateLimit=None, Account=None, region_name=None):
         cs.aws_account.regional_account.RegionalAccount object
     """
     RateLimit = RateLimit if RateLimit else {}
-    rl = ratelimitproperties_factory(**RateLimit)
+    rl_properties = ratelimitproperties_factory(**RateLimit)
     acct = account_factory(**Account)
-    return RegionalAccount(rl, acct, region_name=region_name)
+    return RegionalAccount(rl_properties, acct, region_name=region_name)
 
 
 CachingRegionalAccountFactory = Factory(regional_account_factory)

@@ -1,8 +1,10 @@
-# AWS ACCOUNT
+![CrowdStrike cs.aws_account](https://raw.githubusercontent.com/CrowdStrike/cs.aws_account/main/docs/img/cs-logo.png)
+
+# cs.aws_account
 
 Boto3 provides nice bindings into the AWS API.  However, when dealing with
 a complex environment with many regions and accounts, the default calls can
-become combersome.  This package provides some convienence layers to
+become cumbersome.  This package provides some convenience layers to
 application builders that wish to remove some of the complexities for
 common tasks such as account coordination, call limiting, and threaded
 access.
@@ -547,7 +549,7 @@ provide easy threadsafe, iterable access to aggregated sets of
 `RegionalAccounts` values (e.g. `RegionalAccount` objects)
 
 Creating a group is straight forward.  Just keep in mind that `add()`,
-`disacard()` and `values()` calls refer to `RegionAccounts` containers, whilst
+`discard()` and `values()` calls refer to `RegionAccounts` containers, whilst
 `__iter__()` returns `RegionAccount` objects
 
 ```python
@@ -597,4 +599,10 @@ an arbritrary number of dicts providing the call signature of
 `cs.aws_account.regional_account_set.regional_accounts_factory`.
 
 
+---
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/CrowdStrike/cs.aws_account/main/docs/img/cs-logo-footer.png"><br/>
+  <img width="300px" src="https://raw.githubusercontent.com/CrowdStrike/cs.aws_account/main/docs/img/alliance_team.png">
+</p>
+<h3><p align="center">WE STOP BREACHES</p></h3>
