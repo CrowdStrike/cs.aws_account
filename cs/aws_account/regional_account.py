@@ -1,22 +1,26 @@
-import operator
 from threading import RLock
+import logging
+import operator
 import types
+
+from botocore.config import Config
 from cachetools import cached
-from zope.component.factory import Factory
-from zope import interface
-from zope.schema.fieldproperty import FieldProperty
 from cs.ratelimit import ratelimitedmethod, ratelimitproperties_factory
+from zope import interface
+from zope.component.factory import Factory
+from zope.schema.fieldproperty import FieldProperty
+
 from .account import account_factory
+from .exceptions import AWSClientException
 from .interfaces import IRegionalAccount
 from cs.aws_account.caching_key import aggregated_string_hash
-from botocore.config import Config
-from .exceptions import AWSClientException
 
-import logging
+
 logger = logging.getLogger(__name__)
 
+
 @interface.implementer(IRegionalAccount)
-class RegionalAccount(object):
+class RegionalAccount:
     """A boto3 session client caller with rate limiting capabilities
 
     Args:
@@ -64,7 +68,9 @@ class RegionalAccount(object):
         try:
             return callback(**kwargs)
         except Exception as e:
-            raise AWSClientException(e,AccountAlias=self._account.alias(),Region=self._region_name,AccountId=self._account.account_id())
+            raise AWSClientException(
+                e, AccountAlias=self._account.alias(), Region=self._region_name,
+                AccountId=self._account.account_id())
 
     def call_client(self, service, method, client_kwargs=None, **kwargs):
         """Return call to boto3 service client method limited by properties in ratelimit
@@ -91,27 +97,33 @@ class RegionalAccount(object):
         return self._limited(getattr(client, method), **kwargs)
 
     def get_paginator(self, service, method, client_kwargs=None):
-        """Return paginator for boto3 service client method limited by properties in ratelimit
+        """Return paginator for boto3 service client method limited by properties in ratelimit.
 
-        same call features as call_client() except calls are accessed via
+        Same call features as call_client() except calls are accessed via
         a returned paginator
         """
         client_kwargs = {} if not client_kwargs else client_kwargs
         _limited = self._limited
+
         def paginate(self, **kwargs):
-            page_iterator = self.__wrapped__(**kwargs) #get the default paginator from boto3
+            page_iterator = self.__wrapped__(**kwargs)  # get the default paginator from boto3
             _orig_method = page_iterator._method
+
             def _method(self, **kwargs):
                 return _limited(_orig_method, **kwargs)
-            page_iterator._method = types.MethodType(_method, page_iterator) #over-ride with rate-limited method.
+
+            page_iterator._method = types.MethodType(_method, page_iterator)  # over-ride with rate-limited method.
             return page_iterator
 
         client = self._get_client(service, **client_kwargs)
         paginator = client.get_paginator(method)
-        paginator.__wrapped__ = paginator.paginate #we're gonna replace this
+        paginator.__wrapped__ = paginator.paginate  # we're gonna replace this
         paginator.paginate = types.MethodType(paginate, paginator)
         return paginator
+
+
 RegionalAccountFactory = Factory(RegionalAccount)
+
 
 @interface.implementer(IRegionalAccount)
 @cached(cache={}, key=aggregated_string_hash, lock=RLock())
@@ -135,5 +147,6 @@ def regional_account_factory(RateLimit=None, Account=None, region_name=None):
     rl = ratelimitproperties_factory(**RateLimit)
     acct = account_factory(**Account)
     return RegionalAccount(rl, acct, region_name=region_name)
-CachingRegionalAccountFactory = Factory(regional_account_factory)
 
+
+CachingRegionalAccountFactory = Factory(regional_account_factory)

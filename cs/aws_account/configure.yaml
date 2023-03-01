@@ -1,8 +1,8 @@
-#SESSION
+# SESSION
 
 SessionParameters:
  key1: value1 #key value pairs to match boto3.session.Session call signature
- 
+
 AssumeRole:
  sts_method: assume_role # see 'sts' client for variations, defaults to assume_role
  key1: value1 #key value pairs to match sts_method call signature
@@ -17,12 +17,12 @@ Session:
  AssumeRoles: *reference
 
 
-#ACCOUNT
+# ACCOUNT
 
 Account: *reference # references Session
 
 
-#REGIONAL ACCOUNT
+# REGIONAL ACCOUNT
 
 RegionalAccount:
  region_name:
@@ -30,7 +30,7 @@ RegionalAccount:
  Account: *reference
 
 
-#REGIONAL ACCOUNTS CONTAINER
+# REGIONAL ACCOUNTS CONTAINER
 
 Filter:
  Partitions:
@@ -46,9 +46,8 @@ RegionalAccounts:
  Filter: *reference
 
 
-#REGIONAL ACCOUNT SET
+# REGIONAL ACCOUNT SET
 
 RegionalAccountSet:
  - RegionalAccounts: *reference
  - RegionalAccounts: *reference
-

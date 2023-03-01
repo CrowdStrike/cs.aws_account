@@ -1,15 +1,17 @@
-import operator
 from threading import RLock
+import operator
+
 from cachetools import cached, cachedmethod, TTLCache
-from zope.component.factory import Factory
 from zope import interface
+from zope.component.factory import Factory
+
+from .caching_key import aggregated_string_hash
 from .interfaces import IAccount
 from .session import session_factory
-from .caching_key import aggregated_string_hash
 
 
 @interface.implementer(IAccount)
-class Account(object):
+class Account:
     """AWS account information
 
     Args:
@@ -36,12 +38,16 @@ class Account(object):
     @cachedmethod(operator.attrgetter('_cache_aliases'), lock=operator.attrgetter('_rlock'))
     def aliases(self):
         """Return list of all account aliases"""
-        return self.session().boto3().client('iam', **self.session().client_kwargs(service='iam')).list_account_aliases()['AccountAliases']
+        return self.session().boto3().client('iam', **self.session().client_kwargs(
+            service='iam')).list_account_aliases()['AccountAliases']
 
     def session(self):
         """Return referenced cs.aws_account.Session object"""
         return self._session
+
+
 AccountFactory = Factory(Account)
+
 
 @interface.implementer(IAccount)
 @cached(cache={}, key=aggregated_string_hash, lock=RLock())
@@ -69,5 +75,6 @@ def account_factory(SessionParameters=None, AssumeRole=None, AssumeRoles=None):
     if SessionParameters and 'cache_ttl' in SessionParameters:
         kwargs['cache_ttl'] = SessionParameters['cache_ttl']
     return Account(session=session, **kwargs)
-CachingAccountFactory = Factory(account_factory)
 
+
+CachingAccountFactory = Factory(account_factory)
