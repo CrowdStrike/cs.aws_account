@@ -16,7 +16,7 @@ setup(name='cs.aws_account',
       version=version,
       description="AWS account components",
       long_description=open("README.md").read() + "\n" +
-                       open("HISTORY.txt").read(),
+                       open("CHANGELOG.md").read(),
       # Get more strings from
       # http://pypi.python.org/pypi?:action=list_classifiers
       classifiers=[
