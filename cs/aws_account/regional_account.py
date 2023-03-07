@@ -94,7 +94,10 @@ class RegionalAccount:
         """
         client_kwargs = {} if not client_kwargs else client_kwargs
         client = self._get_client(service, **client_kwargs)
-        return self._limited(getattr(client, method), **kwargs)
+        try:
+            return self._limited(getattr(client, method), **kwargs)
+        except AWSClientException as e:
+            raise e 
 
     def get_paginator(self, service, method, client_kwargs=None):
         """Return paginator for boto3 service client method limited by properties in ratelimit.
