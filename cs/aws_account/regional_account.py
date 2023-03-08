@@ -97,6 +97,7 @@ class RegionalAccount:
         try:
             return self._limited(getattr(client, method), **kwargs)
         except AWSClientException as e:
+            logger.warning(str(e))
             raise e 
 
     def get_paginator(self, service, method, client_kwargs=None):
