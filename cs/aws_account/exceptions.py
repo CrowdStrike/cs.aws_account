@@ -11,8 +11,8 @@ class AWSClientException(Exception):
             self._warning = "Queried item does not exist. Check in the AWS Web Console."
         elif "AccessDenied" in error_string:
             self._warning = "Improper AWS IAM permissions. Verify application role has permission to access resource."
-        elif ("AuthFailure" in error_string or \
-              "InvalidClientTokenId" in error_string or \
+        elif ("AuthFailure" in error_string or
+              "InvalidClientTokenId" in error_string or
               "UnrecognizedClientException" in error_string):
             self._warning = ("Attempted to access a non-existent resource. "
                              "Ensure the action, account, and region are removed from the RAS filter")
