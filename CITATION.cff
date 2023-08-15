@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+title: 'cs.aws_account: Configurable boto3 wrapper for complex threadsafe AWS tasks'
+message: >-
+  If you use this software, and wish to cite the origins,
+  please use metadata from this file.
+type: software
+authors:
+  - given-names:
+    family-names: CrowdStrike
+    email: oss@crowdstrike.com
+  - given-names: Dave
+    family-names: Davis
+    affiliation: CrowdStrike
+  - given-names: Forrest
+    family-names: Aldridge
+    affiliation: CrowdStrike
+  - given-names: Ross
+    family-names: Clarke
+    affiliation: CrowdStrike
+repository-code: 'https://github.com/CrowdStrike/cs.aws_account'
+repository-artifact: 'https://pypi.org/project/cs-aws-account/'
+abstract: >-
+  The cs.aws_account package provides a wrapper around boto3 for optimized,
+  threadsafe complex interactions with AWS resources that can be configured via
+  code or YAML and optionally wired together using the Zope Component
+  Architecture.
+keywords:
+  - crowdstrike
+  - aws
+  - zope
+  - python
+  - windows
+  - linux
+  - mac license: MIT

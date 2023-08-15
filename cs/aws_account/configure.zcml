@@ -1,0 +1,57 @@
+<configure xmlns="http://namespaces.zope.org/zope">
+    
+    <utility
+        name="cs.aws_account.session"
+        component=".session.SessionFactory"
+        />
+    
+    <utility
+        name="cs.aws_account.cached_session"
+        component=".session.CachingSessionFactory"
+        />
+    
+    
+    <utility
+        name="cs.aws_account.account"
+        component=".account.AccountFactory"
+        />
+    
+    <utility
+        name="cs.aws_account.cached_account"
+        component=".account.CachingAccountFactory"
+        />
+    
+    
+    <utility
+        name="cs.aws_account.regional_account"
+        component=".regional_account.RegionalAccountFactory"
+        />
+    
+    <utility
+        name="cs.aws_account.cached_regional_account"
+        component=".regional_account.CachingRegionalAccountFactory"
+        />
+    
+    
+    <utility
+        name="cs.aws_account.regional_accounts"
+        component=".regional_accounts.RegionalAccountsFactory"
+        />
+    
+    <utility
+        name="cs.aws_account.cached_regional_accounts"
+        component=".regional_accounts.CachingRegionalAccountsFactory"
+        />
+    
+    
+    <utility
+        name="cs.aws_account.regional_account_set"
+        component=".regional_account_set.RegionalAccountSetFactory"
+        />
+    
+    <utility
+        name="cs.aws_account.regional_account_set_from_config"
+        component=".regional_account_set.RegionalAccountSetFactoryFromConfig"
+        />
+
+</configure>

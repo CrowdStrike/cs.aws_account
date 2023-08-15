@@ -1,0 +1,53 @@
+# SESSION
+
+SessionParameters:
+ key1: value1 #key value pairs to match boto3.session.Session call signature
+
+AssumeRole:
+ sts_method: assume_role # see 'sts' client for variations, defaults to assume_role
+ key1: value1 #key value pairs to match sts_method call signature
+
+AssumeRoles:
+ - AssumeRole: *reference
+ - AssumeRole: *reference
+
+Session:
+ SessionParameters: *reference
+ AssumeRole: *reference
+ AssumeRoles: *reference
+
+
+# ACCOUNT
+
+Account: *reference # references Session
+
+
+# REGIONAL ACCOUNT
+
+RegionalAccount:
+ region_name:
+ RateLimit: *reference #optional, defaults to unlimited, see cs.ratelimit
+ Account: *reference
+
+
+# REGIONAL ACCOUNTS CONTAINER
+
+Filter:
+ Partitions:
+  aws: # valid AWS partition name.  If absent, defaults to 'aws'
+   IncludeNonRegional: True|False # include non-regional endpoint names, defaults to True
+   Regions: #if absent, defaults to all available regions
+    include: [list, of, regions] #if absent, defaults to all available regions
+    exclude: [list, of, regions] #takes precedence over include
+
+RegionalAccounts:
+ Account: *reference
+ RateLimit: *reference #optional, defaults to unlimited
+ Filter: *reference
+
+
+# REGIONAL ACCOUNT SET
+
+RegionalAccountSet:
+ - RegionalAccounts: *reference
+ - RegionalAccounts: *reference
