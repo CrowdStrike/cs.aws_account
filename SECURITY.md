@@ -1,4 +1,4 @@
-![CrowdStrike cs.aws_account](https://raw.githubusercontent.com/CrowdStrike/cs.aws_account/main/docs/asset/cs-logo.png)
+![CrowdStrike cs.aws_account](https://raw.githubusercontent.com/CrowdStrike/cs.aws_account/main/docs/img/cs-logo.png)
 
 # Security Policy
 This document outlines security policy and procedures for the CrowdStrike `cs.aws_account` project.
