@@ -71,7 +71,7 @@ pyyaml==6.0.1
     #   cs.aws-account (setup.py)
 rich==13.5.0
     # via bandit
-s3transfer==0.6.1
+s3transfer==0.6.2
     # via boto3
 six==1.16.0
     # via python-dateutil
