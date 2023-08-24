@@ -54,7 +54,7 @@ class RegionalAccounts:
         self.filter = Filter if Filter else {}
 
         self._rate_limit = RateLimit
-        self._account_factory = Account
+        self._account_properties = Account
         self._account = account_factory(**Account)
         self._service = service
         self._rate_limit_region_spec = RateLimitRegionSpec if RateLimitRegionSpec else {}
@@ -69,7 +69,7 @@ class RegionalAccounts:
             except KeyError:
                 self._regional_accounts[region_name] = regional_account_factory(
                     self._rate_limit_region_spec[region_name] if region_name in
-                    self._rate_limit_region_spec else self._rate_limit, self._account, region_name)
+                    self._rate_limit_region_spec else self._rate_limit, self._account_properties, region_name)
             return self._regional_accounts[region_name]
 
     def account(self):
