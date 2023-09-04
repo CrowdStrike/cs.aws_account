@@ -133,7 +133,7 @@ zope-schema==7.0.1
     #   zope-security
 zope-security==6.1
     # via cs.aws-account (setup.py)
-zope-testrunner==6.0
+zope-testrunner==6.1
     # via cs.aws-account (setup.py)
 
 # The following packages are considered to be unsafe in a requirements file:
