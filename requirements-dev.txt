@@ -8,7 +8,7 @@ astroid==2.15.6
     # via pylint
 bandit==1.7.5
     # via cs.aws-account (setup.py)
-boto3==1.28.15
+boto3==1.28.40
     # via cs.aws-account (setup.py)
 botocore==1.31.15
     # via
