@@ -40,12 +40,11 @@ class Session:
     Provides convenient access to boto3.session.Session() objects even in
     complex threaded environments with IAM role assumption.
 
-    Some method calls have memoizing TTL caches to improve performance of
+    Some method calls have memoizing caches to improve performance of
     common action calls (such as logging session information).
 
     Kwargs:
-        cache_ttl: Integer seconds time to live for cached method calls
-        [boto3.session.Session]: See boto3.session.Session for other available kwargs
+        [boto3.session.Session]: See boto3.session.Session for available kwargs
     """
 
     # pylint: disable=too-many-instance-attributes, protected-access
@@ -58,7 +57,7 @@ class Session:
             self._cache_user_id = Cache(maxsize=1)
             self._cache_arn = Cache(maxsize=1)
 
-    def __init__(self, cache_ttl=3600, **SessionParameters):
+    def __init__(self, **SessionParameters):
         """Set up the thread safety and threadlocal data."""
 
         class TLBoto3(local):  # pylint: disable=too-few-public-methods
@@ -74,7 +73,6 @@ class Session:
         self._local = TLBoto3()  # threadlocal data to protect the non-TS low-level Boto3 session
         self._stack = [(aggregated_string_hash(SessionParameters), SessionParameters)]  # master stack
         self._rlock = RLock()
-        self._cache_ttl = cache_ttl
         self._client_kwargs = {}
         self._credentials = {}
         if 'region_name' in SessionParameters:
