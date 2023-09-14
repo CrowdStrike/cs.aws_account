@@ -3,13 +3,15 @@
 from threading import RLock
 import operator
 
-from cachetools import cached, cachedmethod, TTLCache
+from cachetools import cached, cachedmethod, Cache
 from zope import interface
 from zope.component.factory import Factory
+from botocore.config import Config
 
 from .caching_key import aggregated_string_hash
 from .interfaces import IAccount
 from .session import session_factory
+from .retry import aws_throttling_retry
 
 
 @interface.implementer(IAccount)
@@ -18,16 +20,14 @@ class Account:
 
     Args:
         session: cs.aws_account.Session instance
-
-    Kwargs:
-        cache_ttl: integer seconds time to live setting for cached method calls.
-                   defaults to 3600
     """
 
-    def __init__(self, session, cache_ttl=3600):
+    aws_client_config = Config(retries={"max_attempts": 10})
+
+    def __init__(self, session):
         """Initialize the Account with a Read Lock."""
         self._session = session
-        self._cache_aliases = TTLCache(maxsize=1, ttl=cache_ttl)
+        self._cache_aliases = Cache(maxsize=1)
         self._rlock = RLock()
 
     def account_id(self):
@@ -40,10 +40,12 @@ class Account:
         return aliases[0] if aliases else self.account_id()
 
     @cachedmethod(operator.attrgetter('_cache_aliases'), lock=operator.attrgetter('_rlock'))
+    @aws_throttling_retry()
     def aliases(self):
         """Return list of all account aliases."""
-        return self.session().boto3().client('iam', **self.session().client_kwargs(
-            service='iam')).list_account_aliases()['AccountAliases']
+        client_kwargs = self.session().client_kwargs(service='iam')
+        client_kwargs['config'] = Account.aws_client_config
+        return self.session().boto3().client('iam', **client_kwargs).list_account_aliases()['AccountAliases']
 
     def session(self):
         """Return referenced cs.aws_account.Session object."""
@@ -75,10 +77,7 @@ def account_factory(SessionParameters=None, AssumeRole=None, AssumeRoles=None):
     session = session_factory(SessionParameters=SessionParameters,
                               AssumeRole=AssumeRole,
                               AssumeRoles=AssumeRoles)
-    kwargs = {}
-    if SessionParameters and 'cache_ttl' in SessionParameters:
-        kwargs['cache_ttl'] = SessionParameters['cache_ttl']
-    return Account(session=session, **kwargs)
+    return Account(session=session)
 
 
 CachingAccountFactory = Factory(account_factory)

@@ -9,14 +9,14 @@ import operator
 from boto3.session import Session as botoSession
 from botocore.credentials import RefreshableCredentials
 from botocore.session import get_session
-from cachetools import cached, cachedmethod, TTLCache
+from cachetools import cached, cachedmethod, Cache
 from zope import interface
 from zope.component.factory import Factory
 from zope.interface.common.collections import IMutableMapping
 
 from .caching_key import aggregated_string_hash
 from .interfaces import ISession
-
+from .retry import aws_throttling_retry
 
 logger = logging.getLogger(__name__)
 
@@ -53,10 +53,10 @@ class Session:
     def _reset_caches(self):
         """Reset the memoizing decorator caches."""
         with self._rlock:
-            self._cache_access_key = TTLCache(maxsize=1, ttl=self._cache_ttl)
-            self._cache_account_id = TTLCache(maxsize=1, ttl=self._cache_ttl)
-            self._cache_user_id = TTLCache(maxsize=1, ttl=self._cache_ttl)
-            self._cache_arn = TTLCache(maxsize=1, ttl=self._cache_ttl)
+            self._cache_access_key = Cache(maxsize=1)
+            self._cache_account_id = Cache(maxsize=1)
+            self._cache_user_id = Cache(maxsize=1)
+            self._cache_arn = Cache(maxsize=1)
 
     def __init__(self, cache_ttl=3600, **SessionParameters):
         """Set up the thread safety and threadlocal data."""
@@ -223,6 +223,7 @@ class Session:
         return client_kwargs
 
     @cachedmethod(operator.attrgetter('_cache_access_key'), lock=operator.attrgetter('_rlock'))
+    @aws_throttling_retry()
     def access_key(self):
         """Return access key related to session."""
         logger.debug("Refreshing access key cache")
@@ -230,12 +231,14 @@ class Session:
         return creds.access_key if creds else None
 
     @cachedmethod(operator.attrgetter('_cache_account_id'), lock=operator.attrgetter('_rlock'))
+    @aws_throttling_retry()
     def account_id(self):
         """Return AWS account ID related to session."""
         logger.debug("Refreshing account id cache")
         return self.boto3().client('sts', **self.client_kwargs(service='sts')).get_caller_identity()['Account']
 
     @cachedmethod(operator.attrgetter('_cache_user_id'), lock=operator.attrgetter('_rlock'))
+    @aws_throttling_retry()
     def user_id(self):
         """Return AWS user ID related to session."""
         logger.debug("Refreshing user id cache")
