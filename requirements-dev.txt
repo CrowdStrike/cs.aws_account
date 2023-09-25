@@ -83,7 +83,7 @@ stevedore==5.1.0
     # via bandit
 tomlkit==0.12.1
     # via pylint
-urllib3==1.26.16
+urllib3==2.0.5
     # via botocore
 wrapt==1.15.0
     # via astroid
