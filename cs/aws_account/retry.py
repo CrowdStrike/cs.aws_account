@@ -30,7 +30,8 @@ def aws_throttling_retry(max_retries=5, base=0.5, growth_factor=0.5):
                 try:
                     return func(*args, **kwargs)
                 except Exception as error:  # pylint: disable=broad-exception-caught
-                    if '(Throttling)' in str(error):
+                    err_str = str(error).lower()
+                    if 'throttling' in err_str or 'rate exceeded' in err_str:
                         retries += 1
                         if retries >= max_retries:
                             logger.warning("Received AWS throttling error. Exhausted all attempts.")
