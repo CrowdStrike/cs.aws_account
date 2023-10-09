@@ -10,7 +10,7 @@ bandit==1.7.5
     # via cs.aws-account (setup.py)
 boto3==1.28.47
     # via cs.aws-account (setup.py)
-botocore==1.31.47
+botocore==1.31.62
     # via
     #   boto3
     #   cs.aws-account (setup.py)
