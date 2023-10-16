@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=dev --output-file=requirements-dev.txt
 #
-astroid==2.15.6
+astroid==3.0.1
     # via pylint
 bandit==1.7.5
     # via cs.aws-account (setup.py)
