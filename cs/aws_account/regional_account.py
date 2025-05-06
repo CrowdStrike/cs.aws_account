@@ -53,7 +53,8 @@ class RegionalAccount:
         kwargs['service_name'] = service
         kwargs['region_name'] = self.region()
         kwargs.update(self.account().session().client_kwargs(service=service))
-        kwargs['config'] = AwsAccount.aws_client_config
+        if 'config' not in kwargs:
+            kwargs['config'] = AwsAccount.aws_client_config
         return self.account().session().boto3().client(**kwargs)
 
     @ratelimitedmethod(operator.attrgetter('ratelimit'))
